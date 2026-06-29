@@ -1292,11 +1292,7 @@ function render() {
     return;
   }
 
-  if (state.view === "admin") {
-    app.innerHTML = adminPage();
-    return;
-  }
-
+  
   if (state.view === "bookmarks") {
     app.innerHTML = bookmarksPage();
     return;
