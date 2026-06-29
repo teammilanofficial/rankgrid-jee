@@ -1,8 +1,8 @@
 window.RANKGRID_SUPABASE = null;
 
 try {
-  const RANKGRID_SUPABASE_URL = "PASTE_YOUR_SUPABASE_PROJECT_URL_HERE";
-  const RANKGRID_SUPABASE_ANON_KEY = "PASTE_YOUR_SUPABASE_ANON_PUBLIC_KEY_HERE";
+  const RANKGRID_SUPABASE_URL = "https://nmlxcodtilehtdremrsg.supabase.co/rest/v1/";
+  const RANKGRID_SUPABASE_ANON_KEY = "https://nmlxcodtilehtdremrsg.supabase.co/rest/v1/";
 
   if (
     window.supabase &&
