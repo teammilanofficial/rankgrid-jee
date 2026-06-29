@@ -20,7 +20,9 @@ let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
   bookmarkedMaterials: [],
   paymentSeries: null
 };
-
+let currentUser = null;
+let currentProfile = null;
+let currentIsAdmin = false;
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
