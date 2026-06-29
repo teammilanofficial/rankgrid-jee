@@ -1,181 +1,13 @@
-const SERIES = [
-  {
-    id: "free",
-    title: "Free JEE 2028 Dashboard",
-    subject: "All Subjects",
-    type: "Free Material",
-    price: 0,
-    free: true,
-    description: "Free PDFs, practice questions, mini tests, planner and basic progress tracking."
-  },
-  {
-    id: "physics-notes",
-    title: "Physics Concise Notes Series",
-    subject: "Physics",
-    type: "PDF Notes",
-    price: 49,
-    free: false,
-    description: "Physics concise notes PDFs, formulas, mind maps and revision sheets."
-  },
-  {
-    id: "physics-pyq",
-    title: "Physics PYQ Practice Series",
-    subject: "Physics",
-    type: "PYQ PDFs",
-    price: 79,
-    free: false,
-    description: "Physics PYQ-style practice PDFs with solutions and progress tracking."
-  },
-  {
-    id: "chemistry-dpp",
-    title: "Chemistry DPP Practice Series",
-    subject: "Chemistry",
-    type: "DPP PDFs",
-    price: 59,
-    free: false,
-    description: "Chemistry DPP PDFs for Physical, Inorganic and Organic Chemistry."
-  },
-  {
-    id: "maths-test",
-    title: "Maths Test Series",
-    subject: "Maths",
-    type: "Test PDFs",
-    price: 99,
-    free: false,
-    description: "Weekly Maths test PDFs with solutions and performance tracking."
-  },
-  {
-    id: "tracker-pro",
-    title: "JEE 2028 Study Tracker Pro",
-    subject: "All Subjects",
-    type: "Tracker Pack",
-    price: 29,
-    free: false,
-    description: "DPP tracker, mistake book, backlog tracker and test analysis PDFs."
-  }
-];
+if (
+  typeof APP_CONFIG === "undefined" ||
+  typeof SERIES === "undefined" ||
+  typeof MATERIALS === "undefined" ||
+  typeof QUESTIONS === "undefined"
+) {
+  alert("data.js is not loaded. Make sure index.html loads data.js before app.js");
+}
 
-const MATERIALS = [
-  {
-    id: 1,
-    seriesId: "free",
-    title: "JEE 2028 Starter Checklist",
-    type: "PDF",
-    subject: "All",
-    chapter: "Strategy",
-    update: "Available",
-    fileUrl: ""
-  },
-  {
-    id: 2,
-    seriesId: "free",
-    title: "Basic Maths Formula Sheet Sample",
-    type: "PDF",
-    subject: "Physics",
-    chapter: "Basic Maths",
-    update: "Available",
-    fileUrl: ""
-  },
-  {
-    id: 3,
-    seriesId: "free",
-    title: "Weekly Mini Test 01",
-    type: "PDF Test",
-    subject: "All",
-    chapter: "Mixed",
-    update: "Available",
-    fileUrl: ""
-  },
-  {
-    id: 4,
-    seriesId: "physics-notes",
-    title: "Basic Maths Concise Notes",
-    type: "PDF Notes",
-    subject: "Physics",
-    chapter: "Basic Maths",
-    update: "Weekly",
-    fileUrl: ""
-  },
-  {
-    id: 5,
-    seriesId: "physics-pyq",
-    title: "Kinematics PYQ Practice Set 1",
-    type: "PDF Practice",
-    subject: "Physics",
-    chapter: "Kinematics",
-    update: "Weekly",
-    fileUrl: ""
-  },
-  {
-    id: 6,
-    seriesId: "chemistry-dpp",
-    title: "Mole Concept DPP Set 1",
-    type: "PDF Practice",
-    subject: "Chemistry",
-    chapter: "Mole Concept",
-    update: "Weekly",
-    fileUrl: ""
-  },
-  {
-    id: 7,
-    seriesId: "maths-test",
-    title: "Quadratic Equations Test 1",
-    type: "PDF Test",
-    subject: "Maths",
-    chapter: "Quadratic Equations",
-    update: "Sunday",
-    fileUrl: ""
-  }
-];
-
-const QUESTIONS = [
-  {
-    id: "q1",
-    seriesId: "free",
-    subject: "Physics",
-    chapter: "Basic Maths",
-    difficulty: "Easy",
-    question: "If y = x², then dy/dx is:",
-    options: ["x", "2x", "x²", "2"],
-    correct: 1,
-    solution: "Using d(xⁿ)/dx = n xⁿ⁻¹, d(x²)/dx = 2x."
-  },
-  {
-    id: "q2",
-    seriesId: "free",
-    subject: "Physics",
-    chapter: "Graphs",
-    difficulty: "Easy",
-    question: "The slope of displacement-time graph represents:",
-    options: ["Acceleration", "Velocity", "Force", "Work"],
-    correct: 1,
-    solution: "Slope of x-t graph is dx/dt, which is velocity."
-  },
-  {
-    id: "q3",
-    seriesId: "free",
-    subject: "Chemistry",
-    chapter: "Mole Concept",
-    difficulty: "Easy",
-    question: "1 mole of any substance contains approximately:",
-    options: ["6.022 × 10²³ particles", "9.8 particles", "3 × 10⁸ particles", "1.6 × 10⁻¹⁹ particles"],
-    correct: 0,
-    solution: "One mole contains Avogadro number of particles, approximately 6.022 × 10²³."
-  },
-  {
-    id: "q4",
-    seriesId: "free",
-    subject: "Maths",
-    chapter: "Quadratic Equations",
-    difficulty: "Medium",
-    question: "For ax² + bx + c = 0, the discriminant is:",
-    options: ["b² + 4ac", "b² - 4ac", "a² - 4bc", "c² - 4ab"],
-    correct: 1,
-    solution: "The discriminant of ax² + bx + c = 0 is D = b² - 4ac."
-  }
-];
-
-const STORAGE_KEY = "rankgrid_jee_working_v1";
+const STORAGE_KEY = "rankgrid_jee_final_v1";
 
 let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
   view: "home",
@@ -183,7 +15,10 @@ let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
   activeTab: "overview",
   unlockedSeries: ["free"],
   attempts: {},
-  bookmarks: []
+  completedMaterials: {},
+  bookmarkedQuestions: [],
+  bookmarkedMaterials: [],
+  paymentSeries: null
 };
 
 function save() {
@@ -214,42 +49,81 @@ function isUnlocked(seriesId) {
   return state.unlockedSeries.includes(seriesId);
 }
 
-function getAttempts(filterSeries = null) {
-  let arr = Object.values(state.attempts);
-
-  if (filterSeries) {
-    arr = arr.filter((a) => a.seriesId === filterSeries);
-  }
-
-  return arr;
+function getSeries(seriesId) {
+  return SERIES.find((series) => series.id === seriesId) || SERIES[0];
 }
 
-function getStats(seriesId = null) {
-  const arr = getAttempts(seriesId);
+function getSeriesMaterials(seriesId) {
+  return MATERIALS.filter((material) => material.seriesId === seriesId);
+}
 
-  const total = arr.length;
-  const solved = arr.filter((a) => a.status !== "skipped").length;
-  const correct = arr.filter((a) => a.status === "correct").length;
-  const incorrect = arr.filter((a) => a.status === "incorrect").length;
-  const skipped = arr.filter((a) => a.status === "skipped").length;
+function getSeriesQuestions(seriesId) {
+  return QUESTIONS.filter((question) => question.seriesId === seriesId);
+}
+
+function getAttemptsArray() {
+  return Object.values(state.attempts);
+}
+
+function getQuestionStats(seriesId = null) {
+  let attempts = getAttemptsArray();
+
+  if (seriesId) {
+    attempts = attempts.filter((attempt) => attempt.seriesId === seriesId);
+  }
+
+  const total = attempts.length;
+  const solved = attempts.filter((attempt) => attempt.status !== "skipped").length;
+  const correct = attempts.filter((attempt) => attempt.status === "correct").length;
+  const incorrect = attempts.filter((attempt) => attempt.status === "incorrect").length;
+  const skipped = attempts.filter((attempt) => attempt.status === "skipped").length;
   const accuracy = solved ? Math.round((correct / solved) * 1000) / 10 : 0;
 
-  return { total, solved, correct, incorrect, skipped, accuracy };
+  return {
+    total,
+    solved,
+    correct,
+    incorrect,
+    skipped,
+    accuracy
+  };
 }
 
-function getCompletion(seriesId) {
-  const qs = QUESTIONS.filter((q) => q.seriesId === seriesId);
+function getMaterialStats(seriesId = null) {
+  let materials = MATERIALS;
 
-  if (qs.length === 0) {
-    return seriesId === "free" ? 20 : 0;
+  if (seriesId) {
+    materials = materials.filter((material) => material.seriesId === seriesId);
   }
 
-  const attempted = qs.filter((q) => state.attempts[q.id]).length;
+  const total = materials.length;
+  const completed = materials.filter((material) => state.completedMaterials[material.id]).length;
+  const pending = total - completed;
+  const completion = total ? Math.round((completed / total) * 100) : 0;
 
-  return Math.round((attempted / qs.length) * 100);
+  return {
+    total,
+    completed,
+    pending,
+    completion
+  };
 }
 
-function stat(label, value) {
+function getOverallCompletion(seriesId) {
+  const materialStats = getMaterialStats(seriesId);
+  const questions = getSeriesQuestions(seriesId);
+
+  if (questions.length === 0) {
+    return materialStats.completion;
+  }
+
+  const attemptedQuestions = questions.filter((q) => state.attempts[q.id]).length;
+  const questionCompletion = Math.round((attemptedQuestions / questions.length) * 100);
+
+  return Math.round((materialStats.completion + questionCompletion) / 2);
+}
+
+function statCard(label, value) {
   return `
     <div class="stat">
       <div class="stat-number">${value}</div>
@@ -258,7 +132,7 @@ function stat(label, value) {
   `;
 }
 
-function nav(view, label) {
+function navButton(view, label) {
   return `
     <button class="nav-btn ${state.view === view ? "active" : ""}" onclick="setView('${view}')">
       <span class="nav-dot"></span>
@@ -274,25 +148,30 @@ function layout(content) {
         <div class="logo">
           <div class="logo-mark">RG</div>
           <div>
-            <h1>RankGrid JEE</h1>
-            <p>Track. Practice. Improve.</p>
+            <h1>${APP_CONFIG.appName}</h1>
+            <p>${APP_CONFIG.tagline}</p>
           </div>
         </div>
 
         <div class="nav-title">Main</div>
-        ${nav("home", "Dashboard")}
-        ${nav("free", "Free Dashboard")}
-        ${nav("series", "All Series")}
-        ${nav("practice", "Practice Zone")}
-        ${nav("mistakes", "Mistake Book")}
-        ${nav("analytics", "Analytics")}
+        ${navButton("home", "Dashboard")}
+        ${navButton("free", "Free Dashboard")}
+        ${navButton("series", "All Series")}
+        ${navButton("practice", "Practice Zone")}
+        ${navButton("mistakes", "Mistake Book")}
+        ${navButton("analytics", "Analytics")}
+
+        <div class="nav-title">PDF Resources</div>
+        ${navButton("bookmarks", "Bookmarks")}
+        ${navButton("updates", "Updates")}
 
         <div class="nav-title">Business</div>
-        ${nav("premium", "Premium & UPI")}
-        ${nav("admin", "Admin Panel")}
+        ${navButton("premium", "Premium & UPI")}
+        ${navButton("admin", "Admin Panel")}
 
         <div class="footer-note">
-          V1 works without Supabase. Progress is saved in this browser.
+          V1 works without backend. Progress is saved in this browser.
+          Paid unlock is manual demo. V2 will add login, database and protected PDFs.
         </div>
       </aside>
 
@@ -302,7 +181,7 @@ function layout(content) {
 
           <input 
             class="search" 
-            placeholder="Search series, notes, PYQ, DPP, tests..." 
+            placeholder="Search series, PDF, DPP, PYQ, tests..." 
             oninput="searchCards(this.value)"
           />
 
@@ -310,7 +189,7 @@ function layout(content) {
             <div class="avatar">J</div>
             <div>
               <strong>JEE Aspirant</strong>
-              <div class="muted" style="font-size: 12px;">Free Account</div>
+              <div class="muted" style="font-size: 12px;">${APP_CONFIG.exam}</div>
             </div>
           </div>
         </div>
@@ -322,73 +201,82 @@ function layout(content) {
 }
 
 function homePage() {
-  const s = getStats();
+  const qStats = getQuestionStats();
+  const mStats = getMaterialStats();
 
   return layout(`
     <section class="hero">
       <div class="hero-card">
-        <span class="badge">JEE 2028 Practice Dashboard</span>
+        <span class="badge">${APP_CONFIG.exam} Practice Dashboard</span>
 
-        <h2>Professional dashboard for PDFs, practice, tests and accuracy tracking.</h2>
+        <h2>Professional dashboard for PDFs, practice, tests and progress tracking.</h2>
 
         <p>
-          RankGrid JEE gives free and premium subject-wise PDF series with separate dashboards.
-          Track solved problems, correct, incorrect, skipped, accuracy, mistakes and updates in one place.
+          ${APP_CONFIG.appName} gives free and premium subject-wise PDF series with separate dashboards.
+          Track PDF completion, solved questions, correct, incorrect, skipped, accuracy, mistakes and weekly updates.
         </p>
 
         <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:20px;">
           <button class="btn" onclick="setView('free')">Start Free Dashboard</button>
-          <button class="btn secondary" onclick="setView('series')">View Series</button>
+          <button class="btn secondary" onclick="setView('series')">View All Series</button>
         </div>
       </div>
 
       <div class="panel">
-        <div class="kpi-ring" style="--percentage: ${s.accuracy * 3.6}deg;">
+        <div class="kpi-ring" style="--percentage: ${qStats.accuracy * 3.6}deg;">
           <div>
-            ${s.accuracy}%<br>
+            ${qStats.accuracy}%<br>
             <span class="muted" style="font-size:12px;">Accuracy</span>
           </div>
         </div>
 
         <div class="grid stats" style="grid-template-columns: repeat(2, 1fr);">
-          ${stat("Solved", s.solved)}
-          ${stat("Correct", s.correct)}
-          ${stat("Incorrect", s.incorrect)}
-          ${stat("Skipped", s.skipped)}
+          ${statCard("Solved", qStats.solved)}
+          ${statCard("Correct", qStats.correct)}
+          ${statCard("PDF Done", mStats.completed)}
+          ${statCard("Unlocked", state.unlockedSeries.length)}
         </div>
       </div>
     </section>
 
     <div class="grid stats">
-      ${stat("Series", SERIES.length)}
-      ${stat("PDF Resources", MATERIALS.length)}
-      ${stat("Practice Qs", QUESTIONS.length)}
-      ${stat("Unlocked", state.unlockedSeries.length)}
+      ${statCard("Total Series", SERIES.length)}
+      ${statCard("PDF Resources", MATERIALS.length)}
+      ${statCard("Practice Qs", QUESTIONS.length)}
+      ${statCard("PDF Progress", mStats.completion + "%")}
     </div>
 
     <div class="section-title">
-      <h2>Featured Series</h2>
+      <div>
+        <h2>Featured Series</h2>
+        <p class="muted">Free and premium dashboards for JEE 2028 preparation.</p>
+      </div>
       <button class="btn secondary" onclick="setView('series')">See All</button>
     </div>
 
     <div class="grid cards">
-      ${SERIES.slice(0, 3).map(seriesCard).join("")}
+      ${SERIES.slice(0, 6).map(seriesCard).join("")}
     </div>
   `);
 }
 
 function seriesCard(series) {
-  const completion = getCompletion(series.id);
+  const completion = getOverallCompletion(series.id);
 
   return `
-    <div class="series-card searchable" data-search="${series.title.toLowerCase()} ${series.subject.toLowerCase()} ${series.type.toLowerCase()}">
+    <div 
+      class="series-card searchable" 
+      data-search="${series.title.toLowerCase()} ${series.subject.toLowerCase()} ${series.type.toLowerCase()}"
+    >
       <span class="pill ${series.free ? "free" : "locked"}">
         ${series.free ? "Free" : "₹" + series.price}
       </span>
 
       <span class="pill">${series.subject}</span>
+      <span class="pill">${series.type}</span>
 
       <h3>${series.title}</h3>
+
       <p>${series.description}</p>
 
       <div class="progress">
@@ -412,7 +300,7 @@ function seriesCard(series) {
   `;
 }
 
-function freePage() {
+function freeDashboardPage() {
   state.activeSeries = "free";
   state.activeTab = "overview";
   save();
@@ -424,22 +312,72 @@ function allSeriesPage() {
     <div class="section-title">
       <div>
         <h2>All PDF Series</h2>
-        <p class="muted">Each series has its own dashboard, PDF resources, practice, analytics and updates.</p>
+        <p class="muted">
+          Each series has its own dashboard, PDF library, progress, practice, analytics and update section.
+        </p>
       </div>
     </div>
 
-    <div class="grid cards">
+    <div class="tabs">
+      <button class="tab active" onclick="filterSeries('all')">All</button>
+      <button class="tab" onclick="filterSeries('physics')">Physics</button>
+      <button class="tab" onclick="filterSeries('chemistry')">Chemistry</button>
+      <button class="tab" onclick="filterSeries('maths')">Maths</button>
+      <button class="tab" onclick="filterSeries('free')">Free</button>
+    </div>
+
+    <div class="grid cards" id="seriesGrid">
       ${SERIES.map(seriesCard).join("")}
     </div>
   `);
 }
 
+function filterSeries(filter) {
+  const grid = document.getElementById("seriesGrid");
+
+  if (!grid) return;
+
+  let filtered = SERIES;
+
+  if (filter === "physics") {
+    filtered = SERIES.filter((s) => s.subject.toLowerCase().includes("physics"));
+  }
+
+  if (filter === "chemistry") {
+    filtered = SERIES.filter((s) => s.subject.toLowerCase().includes("chemistry"));
+  }
+
+  if (filter === "maths") {
+    filtered = SERIES.filter((s) => s.subject.toLowerCase().includes("maths"));
+  }
+
+  if (filter === "free") {
+    filtered = SERIES.filter((s) => s.free);
+  }
+
+  if (filter === "all") {
+    filtered = SERIES;
+  }
+
+  grid.innerHTML = filtered.map(seriesCard).join("");
+}
+
 function seriesDetailPage(forceFree = false) {
-  const id = forceFree ? "free" : state.activeSeries;
-  const series = SERIES.find((s) => s.id === id) || SERIES[0];
-  const s = getStats(id);
-  const locked = !isUnlocked(id);
-  const tabs = ["overview", "materials", "practice", "tests", "mistakes", "analytics", "updates"];
+  const seriesId = forceFree ? "free" : state.activeSeries;
+  const series = getSeries(seriesId);
+  const locked = !isUnlocked(seriesId);
+  const qStats = getQuestionStats(seriesId);
+  const mStats = getMaterialStats(seriesId);
+
+  const tabs = [
+    "overview",
+    "materials",
+    "practice",
+    "tests",
+    "mistakes",
+    "analytics",
+    "updates"
+  ];
 
   return layout(`
     <div class="section-title">
@@ -457,34 +395,69 @@ function seriesDetailPage(forceFree = false) {
     </div>
 
     <div class="grid stats">
-      ${stat("Attempts", s.total)}
-      ${stat("Correct", s.correct)}
-      ${stat("Incorrect", s.incorrect)}
-      ${stat("Accuracy", s.accuracy + "%")}
+      ${statCard("PDFs", mStats.total)}
+      ${statCard("PDF Done", mStats.completed)}
+      ${statCard("Solved", qStats.solved)}
+      ${statCard("Accuracy", qStats.accuracy + "%")}
     </div>
 
     <div class="tabs">
-      ${tabs.map((tab) => `
-        <button class="tab ${state.activeTab === tab ? "active" : ""}" onclick="setTab('${tab}')">
-          ${capitalize(tab)}
-        </button>
-      `).join("")}
+      ${tabs
+        .map(
+          (tab) => `
+          <button class="tab ${state.activeTab === tab ? "active" : ""}" onclick="setTab('${tab}')">
+            ${capitalize(tab)}
+          </button>
+        `
+        )
+        .join("")}
     </div>
 
-    ${locked ? lockedPanel(series) : tabContent(id, state.activeTab)}
+    ${locked ? lockedPanel(series) : tabContent(seriesId, state.activeTab)}
   `);
 }
 
 function lockedPanel(series) {
-  return `
-    <div class="panel">
-      <h3>This premium dashboard is locked</h3>
-      <p class="muted">Unlock to access paid PDFs, dashboard, updates and tracking.</p>
+  const materials = getSeriesMaterials(series.id);
 
-      <div class="payment-box">
-        <strong>Manual UPI Unlock</strong>
-        <p>Pay ₹${series.price}, send screenshot, and admin will approve access.</p>
-        <button class="btn warning" onclick="paymentPage('${series.id}')">Continue to Payment</button>
+  return `
+    <div class="grid two-column">
+      <div class="panel">
+        <h3>This premium dashboard is locked</h3>
+        <p class="muted">
+          Unlock this series to access PDF resources, completion tracking, updates and practice dashboard.
+        </p>
+
+        <div class="payment-box">
+          <strong>Manual UPI Unlock</strong>
+          <p>
+            Pay ₹${series.price} using UPI, send screenshot to ${APP_CONFIG.telegramUsername},
+            then access will be approved manually.
+          </p>
+          <button class="btn warning" onclick="paymentPage('${series.id}')">Continue to Payment</button>
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Included PDFs Preview</h3>
+
+        <div class="list">
+          ${
+            materials.length
+              ? materials
+                  .slice(0, 5)
+                  .map(
+                    (m) => `
+                    <div class="item">
+                      <h4>${m.title}</h4>
+                      <div class="muted">${m.type} • ${m.chapter}</div>
+                    </div>
+                  `
+                  )
+                  .join("")
+              : `<p class="muted">PDFs will be added soon.</p>`
+          }
+        </div>
       </div>
     </div>
   `;
@@ -494,15 +467,18 @@ function tabContent(seriesId, tab) {
   if (tab === "overview") return overviewTab(seriesId);
   if (tab === "materials") return materialsTab(seriesId);
   if (tab === "practice") return practiceTab(seriesId);
-  if (tab === "tests") return testsTab();
+  if (tab === "tests") return testsTab(seriesId);
   if (tab === "mistakes") return mistakesPage(true, seriesId);
   if (tab === "analytics") return analyticsPage(true, seriesId);
   if (tab === "updates") return updatesTab(seriesId);
+
+  return overviewTab(seriesId);
 }
 
 function overviewTab(seriesId) {
-  const s = getStats(seriesId);
-  const mats = MATERIALS.filter((m) => m.seriesId === seriesId);
+  const qStats = getQuestionStats(seriesId);
+  const mStats = getMaterialStats(seriesId);
+  const materials = getSeriesMaterials(seriesId);
 
   return `
     <div class="grid two-column">
@@ -510,28 +486,69 @@ function overviewTab(seriesId) {
         <h3>Series Overview</h3>
 
         <table class="table">
-          <tr><th>Metric</th><th>Value</th></tr>
-          <tr><td>Total Problems Solved</td><td>${s.solved}</td></tr>
-          <tr><td>Total Correct</td><td>${s.correct}</td></tr>
-          <tr><td>Total Incorrect</td><td>${s.incorrect}</td></tr>
-          <tr><td>Total Skipped</td><td>${s.skipped}</td></tr>
-          <tr><td>Accuracy</td><td>${s.accuracy}%</td></tr>
-          <tr><td>Completion</td><td>${getCompletion(seriesId)}%</td></tr>
+          <tr>
+            <th>Metric</th>
+            <th>Value</th>
+          </tr>
+          <tr>
+            <td>Total PDFs</td>
+            <td>${mStats.total}</td>
+          </tr>
+          <tr>
+            <td>PDFs Completed</td>
+            <td>${mStats.completed}</td>
+          </tr>
+          <tr>
+            <td>PDF Completion</td>
+            <td>${mStats.completion}%</td>
+          </tr>
+          <tr>
+            <td>Total Problems Solved</td>
+            <td>${qStats.solved}</td>
+          </tr>
+          <tr>
+            <td>Correct</td>
+            <td>${qStats.correct}</td>
+          </tr>
+          <tr>
+            <td>Incorrect</td>
+            <td>${qStats.incorrect}</td>
+          </tr>
+          <tr>
+            <td>Skipped</td>
+            <td>${qStats.skipped}</td>
+          </tr>
+          <tr>
+            <td>Accuracy</td>
+            <td>${qStats.accuracy}%</td>
+          </tr>
         </table>
       </div>
 
       <div class="panel">
         <h3>Latest PDF Resources</h3>
+
         <div class="list">
           ${
-            mats.length
-              ? mats.slice(0, 4).map((m) => `
-                <div class="item">
-                  <h4>${m.title}</h4>
-                  <div class="muted">${m.type} • ${m.chapter} • ${m.update}</div>
-                </div>
-              `).join("")
-              : `<p class="muted">Resources coming soon.</p>`
+            materials.length
+              ? materials
+                  .slice(0, 6)
+                  .map(
+                    (m) => `
+                    <div class="item">
+                      <h4>${m.title}</h4>
+                      <div class="muted">${m.type} • ${m.chapter} • ${m.update}</div>
+                      <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="btn secondary" onclick="openMaterial(${m.id})">Open</button>
+                        <button class="btn secondary" onclick="toggleMaterialComplete(${m.id})">
+                          ${state.completedMaterials[m.id] ? "Completed" : "Mark Done"}
+                        </button>
+                      </div>
+                    </div>
+                  `
+                  )
+                  .join("")
+              : `<p class="muted">PDF resources coming soon.</p>`
           }
         </div>
       </div>
@@ -540,35 +557,57 @@ function overviewTab(seriesId) {
 }
 
 function materialsTab(seriesId) {
-  const mats = MATERIALS.filter((m) => m.seriesId === seriesId);
+  const materials = getSeriesMaterials(seriesId);
 
   return `
     <div class="panel">
-      <h3>PDF Materials Library</h3>
+      <div class="section-title">
+        <div>
+          <h3>PDF Materials Library</h3>
+          <p class="muted">Open PDFs, mark completed, and track progress.</p>
+        </div>
+      </div>
 
       <table class="table">
         <tr>
+          <th>Status</th>
           <th>Title</th>
           <th>Type</th>
           <th>Subject</th>
           <th>Chapter</th>
           <th>Update</th>
-          <th>Open</th>
+          <th>Actions</th>
         </tr>
 
         ${
-          mats.length
-            ? mats.map((m) => `
-              <tr>
-                <td>${m.title}</td>
-                <td>${m.type}</td>
-                <td>${m.subject}</td>
-                <td>${m.chapter}</td>
-                <td>${m.update}</td>
-                <td><button class="btn secondary" onclick="openMaterial(${m.id})">Open</button></td>
-              </tr>
-            `).join("")
-            : `<tr><td colspan="6">No PDF resources added yet.</td></tr>`
+          materials.length
+            ? materials
+                .map(
+                  (m) => `
+                <tr>
+                  <td>${state.completedMaterials[m.id] ? "Done" : "Pending"}</td>
+                  <td>
+                    <strong>${m.title}</strong>
+                    <div class="muted">${m.description || ""}</div>
+                  </td>
+                  <td>${m.type}</td>
+                  <td>${m.subject}</td>
+                  <td>${m.chapter}</td>
+                  <td>${m.update}</td>
+                  <td>
+                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                      <button class="btn secondary" onclick="openMaterial(${m.id})">Open</button>
+                      <button class="btn secondary" onclick="toggleMaterialComplete(${m.id})">
+                        ${state.completedMaterials[m.id] ? "Undo" : "Done"}
+                      </button>
+                      <button class="btn secondary" onclick="bookmarkMaterial(${m.id})">Save</button>
+                    </div>
+                  </td>
+                </tr>
+              `
+                )
+                .join("")
+            : `<tr><td colspan="7">No PDF resources added yet.</td></tr>`
         }
       </table>
     </div>
@@ -576,13 +615,23 @@ function materialsTab(seriesId) {
 }
 
 function practiceTab(seriesId = "free") {
-  let questions = QUESTIONS.filter((q) => q.seriesId === seriesId);
+  let questions = getSeriesQuestions(seriesId);
 
   if (questions.length === 0) {
-    questions = QUESTIONS.filter((q) => q.seriesId === "free");
+    questions = getSeriesQuestions("free");
   }
 
   const current = questions.find((q) => !state.attempts[q.id]) || questions[0];
+
+  if (!current) {
+    return `
+      <div class="panel">
+        <h3>No questions added yet</h3>
+        <p class="muted">Practice questions for this series will be added soon.</p>
+      </div>
+    `;
+  }
+
   const attempted = state.attempts[current.id];
 
   return `
@@ -594,20 +643,25 @@ function practiceTab(seriesId = "free") {
 
         <h3 class="question">${current.question}</h3>
 
-        ${current.options.map((option, index) => {
-          let cls = "";
+        ${current.options
+          .map((option, index) => {
+            let optionClass = "";
 
-          if (attempted) {
-            if (index === current.correct) cls = "correct";
-            else if (attempted.selected === index) cls = "wrong";
-          }
+            if (attempted) {
+              if (index === current.correct) optionClass = "correct";
+              else if (attempted.selected === index) optionClass = "wrong";
+            }
 
-          return `
-            <button class="option ${cls}" onclick="answerQuestion('${current.id}', ${index})">
-              ${String.fromCharCode(65 + index)}. ${option}
-            </button>
-          `;
-        }).join("")}
+            return `
+              <button 
+                class="option ${optionClass}" 
+                onclick="answerQuestion('${current.id}', ${index})"
+              >
+                ${String.fromCharCode(65 + index)}. ${option}
+              </button>
+            `;
+          })
+          .join("")}
 
         <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
           <button class="btn secondary" onclick="skipQuestion('${current.id}')">Skip</button>
@@ -631,66 +685,89 @@ function practiceTab(seriesId = "free") {
 }
 
 function practiceStats(seriesId) {
-  const s = getStats(seriesId);
+  const stats = getQuestionStats(seriesId);
 
   return `
     <div class="grid stats" style="grid-template-columns: repeat(2, 1fr);">
-      ${stat("Solved", s.solved)}
-      ${stat("Correct", s.correct)}
-      ${stat("Incorrect", s.incorrect)}
-      ${stat("Skipped", s.skipped)}
-      ${stat("Accuracy", s.accuracy + "%")}
-      ${stat("Completion", getCompletion(seriesId) + "%")}
+      ${statCard("Solved", stats.solved)}
+      ${statCard("Correct", stats.correct)}
+      ${statCard("Incorrect", stats.incorrect)}
+      ${statCard("Skipped", stats.skipped)}
+      ${statCard("Accuracy", stats.accuracy + "%")}
+      ${statCard("Attempts", stats.total)}
     </div>
   `;
 }
 
-function testsTab() {
+function testsTab(seriesId) {
+  const testMaterials = getSeriesMaterials(seriesId).filter((m) =>
+    m.type.toLowerCase().includes("test")
+  );
+
   return `
     <div class="panel">
-      <h3>Tests</h3>
+      <h3>Test PDFs</h3>
 
       <div class="list">
-        <div class="item">
-          <h4>Weekly Mini Test 01</h4>
-          <div class="muted">PDF test • 15 questions • Mixed chapters</div>
-          <button class="btn" style="margin-top:10px;" onclick="setTab('practice')">Start Practice</button>
-        </div>
-
-        <div class="item">
-          <h4>More PDF tests coming soon</h4>
-          <div class="muted">You can upload chapter-wise and subject-wise test PDFs here.</div>
-        </div>
+        ${
+          testMaterials.length
+            ? testMaterials
+                .map(
+                  (m) => `
+                <div class="item">
+                  <h4>${m.title}</h4>
+                  <div class="muted">${m.subject} • ${m.chapter} • ${m.update}</div>
+                  <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+                    <button class="btn" onclick="openMaterial(${m.id})">Open Test PDF</button>
+                    <button class="btn secondary" onclick="toggleMaterialComplete(${m.id})">
+                      ${state.completedMaterials[m.id] ? "Completed" : "Mark Completed"}
+                    </button>
+                  </div>
+                </div>
+              `
+                )
+                .join("")
+            : `
+              <div class="item">
+                <h4>No test PDF added yet</h4>
+                <div class="muted">Upload test PDFs in data.js by adding material type as Test PDF.</div>
+              </div>
+            `
+        }
       </div>
     </div>
   `;
 }
 
 function mistakesPage(embedded = false, seriesId = null) {
-  let wrong = Object.values(state.attempts).filter((a) => a.status === "incorrect");
+  let wrongAttempts = getAttemptsArray().filter((attempt) => attempt.status === "incorrect");
 
   if (seriesId) {
-    wrong = wrong.filter((a) => a.seriesId === seriesId);
+    wrongAttempts = wrongAttempts.filter((attempt) => attempt.seriesId === seriesId);
   }
 
   const content = `
     <div class="panel">
-      <h3>Mistake Book</h3>
+      <h3> Mistake Book</h3>
 
       <div class="list">
         ${
-          wrong.length
-            ? wrong.map((a) => {
-              const q = QUESTIONS.find((x) => x.id === a.questionId);
+          wrongAttempts.length
+            ? wrongAttempts
+                .map((attempt) => {
+                  const question = QUESTIONS.find((q) => q.id === attempt.questionId);
 
-              return `
-                <div class="item">
-                  <h4>${q ? q.question : "Question"}</h4>
-                  <div class="muted">${a.subject} • ${a.chapter}</div>
-                  <p><strong>Correct concept:</strong> ${q ? q.solution : ""}</p>
-                </div>
-              `;
-            }).join("")
+                  return `
+                    <div class="item">
+                      <h4>${question ? question.question : "Question"}</h4>
+                      <div class="muted">${attempt.subject} • ${attempt.chapter}</div>
+                      <p><strong>Correct concept:</strong> ${
+                        question ? question.solution : ""
+                      }</p>
+                    </div>
+                  `;
+                })
+                .join("")
             : `<p class="muted">No mistakes yet. Attempt practice questions first.</p>`
         }
       </div>
@@ -700,7 +777,7 @@ function mistakesPage(embedded = false, seriesId = null) {
   return embedded ? content : layout(content);
 }
 
-function analyticsPage(embedded = false) {
+function analyticsPage(embedded = false, seriesId = null) {
   const subjects = ["Physics", "Chemistry", "Maths"];
 
   const content = `
@@ -714,32 +791,42 @@ function analyticsPage(embedded = false) {
             <th>Solved</th>
             <th>Correct</th>
             <th>Incorrect</th>
+            <th>Skipped</th>
             <th>Accuracy</th>
           </tr>
 
-          ${subjects.map((subject) => {
-            const arr = Object.values(state.attempts).filter((a) => a.subject === subject);
-            const solved = arr.filter((a) => a.status !== "skipped").length;
-            const correct = arr.filter((a) => a.status === "correct").length;
-            const incorrect = arr.filter((a) => a.status === "incorrect").length;
-            const accuracy = solved ? Math.round((correct / solved) * 1000) / 10 : 0;
+          ${subjects
+            .map((subject) => {
+              let attempts = getAttemptsArray().filter((a) => a.subject === subject);
 
-            return `
-              <tr>
-                <td>${subject}</td>
-                <td>${solved}</td>
-                <td>${correct}</td>
-                <td>${incorrect}</td>
-                <td>${accuracy}%</td>
-              </tr>
-            `;
-          }).join("")}
+              if (seriesId) {
+                attempts = attempts.filter((a) => a.seriesId === seriesId);
+              }
+
+              const solved = attempts.filter((a) => a.status !== "skipped").length;
+              const correct = attempts.filter((a) => a.status === "correct").length;
+              const incorrect = attempts.filter((a) => a.status === "incorrect").length;
+              const skipped = attempts.filter((a) => a.status === "skipped").length;
+              const accuracy = solved ? Math.round((correct / solved) * 1000) / 10 : 0;
+
+              return `
+                <tr>
+                  <td>${subject}</td>
+                  <td>${solved}</td>
+                  <td>${correct}</td>
+                  <td>${incorrect}</td>
+                  <td>${skipped}</td>
+                  <td>${accuracy}%</td>
+                </tr>
+              `;
+            })
+            .join("")}
         </table>
       </div>
 
       <div class="panel">
         <h3>Weak Area Detector</h3>
-        ${weakAreaDetector()}
+        ${weakAreaDetector(seriesId)}
       </div>
     </div>
   `;
@@ -747,34 +834,43 @@ function analyticsPage(embedded = false) {
   return embedded ? content : layout(content);
 }
 
-function weakAreaDetector() {
-  const wrong = Object.values(state.attempts).filter((a) => a.status === "incorrect");
-  const map = {};
+function weakAreaDetector(seriesId = null) {
+  let wrongAttempts = getAttemptsArray().filter((attempt) => attempt.status === "incorrect");
 
-  wrong.forEach((a) => {
-    map[a.chapter] = (map[a.chapter] || 0) + 1;
+  if (seriesId) {
+    wrongAttempts = wrongAttempts.filter((attempt) => attempt.seriesId === seriesId);
+  }
+
+  const chapterMap = {};
+
+  wrongAttempts.forEach((attempt) => {
+    chapterMap[attempt.chapter] = (chapterMap[attempt.chapter] || 0) + 1;
   });
 
-  const weak = Object.entries(map).sort((a, b) => b[1] - a[1]);
+  const weakChapters = Object.entries(chapterMap).sort((a, b) => b[1] - a[1]);
 
-  if (!weak.length) {
+  if (weakChapters.length === 0) {
     return `<p class="muted">No weak areas detected yet.</p>`;
   }
 
   return `
     <div class="list">
-      ${weak.map(([chapter, count]) => `
-        <div class="item">
-          <strong>${chapter}</strong>
-          <div class="muted">${count} repeated mistake(s)</div>
-        </div>
-      `).join("")}
+      ${weakChapters
+        .map(
+          ([chapter, count]) => `
+            <div class="item">
+              <strong>${chapter}</strong>
+              <div class="muted">${count} repeated mistake(s)</div>
+            </div>
+          `
+        )
+        .join("")}
     </div>
   `;
 }
 
 function updatesTab(seriesId) {
-  const mats = MATERIALS.filter((m) => m.seriesId === seriesId);
+  const materials = getSeriesMaterials(seriesId);
 
   return `
     <div class="panel">
@@ -782,13 +878,18 @@ function updatesTab(seriesId) {
 
       <div class="list">
         ${
-          mats.length
-            ? mats.map((m) => `
-              <div class="item">
-                <h4>${m.update}: ${m.title}</h4>
-                <div class="muted">${m.type} • ${m.subject} • ${m.chapter}</div>
-              </div>
-            `).join("")
+          materials.length
+            ? materials
+                .map(
+                  (m) => `
+                <div class="item">
+                  <h4>${m.update}: ${m.title}</h4>
+                  <div class="muted">${m.type} • ${m.subject} • ${m.chapter}</div>
+                  <p>${m.description || ""}</p>
+                </div>
+              `
+                )
+                .join("")
             : `<p class="muted">Weekly updates will appear here.</p>`
         }
       </div>
@@ -796,24 +897,75 @@ function updatesTab(seriesId) {
   `;
 }
 
+function globalUpdatesPage() {
+  return layout(`
+    <div class="section-title">
+      <div>
+        <h2>All Updates</h2>
+        <p class="muted">Latest PDF resources and announcements.</p>
+      </div>
+    </div>
+
+    <div class="grid two-column">
+      <div class="panel">
+        <h3>Announcements</h3>
+        <div class="list">
+          ${
+            typeof ANNOUNCEMENTS !== "undefined" && ANNOUNCEMENTS.length
+              ? ANNOUNCEMENTS.map(
+                  (a) => `
+                  <div class="item">
+                    <h4>${a.title}</h4>
+                    <div class="muted">${a.date}</div>
+                    <p>${a.message}</p>
+                  </div>
+                `
+                ).join("")
+              : `<p class="muted">No announcements yet.</p>`
+          }
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Recent PDFs</h3>
+        <div class="list">
+          ${MATERIALS.slice(0, 10)
+            .map(
+              (m) => `
+              <div class="item">
+                <h4>${m.title}</h4>
+                <div class="muted">${m.subject} • ${m.type} • ${m.update}</div>
+              </div>
+            `
+            )
+            .join("")}
+        </div>
+      </div>
+    </div>
+  `);
+}
+
 function premiumPage() {
   return layout(`
     <div class="section-title">
       <div>
         <h2>Premium PDF Series</h2>
-        <p class="muted">Manual UPI unlock system for paid PDF resources.</p>
+        <p class="muted">
+          Unlock paid series manually through UPI. Access is saved in this browser for V1.
+        </p>
       </div>
     </div>
 
     <div class="grid cards">
-      ${SERIES.filter((s) => !s.free).map(seriesCard).join("")}
+      ${SERIES.filter((series) => !series.free).map(seriesCard).join("")}
     </div>
   `);
 }
 
 function paymentPage(seriesId) {
-  const series = SERIES.find((s) => s.id === seriesId);
+  const series = getSeries(seriesId);
 
+  state.paymentSeries = seriesId;
   state.view = "payment";
   save();
 
@@ -821,19 +973,26 @@ function paymentPage(seriesId) {
     <div class="panel">
       <h2>Unlock ${series.title}</h2>
 
-      <p class="muted">Manual payment flow for free setup.</p>
+      <p class="muted">Manual payment flow for V1.</p>
 
       <div class="payment-box">
         <h3>Pay ₹${series.price} via UPI</h3>
 
-        <p><strong>UPI ID:</strong> yourupi@bank</p>
+        <p><strong>UPI ID:</strong> ${APP_CONFIG.upiId}</p>
 
-        <p>After payment, user sends screenshot on Telegram. You approve access manually.</p>
+        <p>
+          After payment, send screenshot to ${APP_CONFIG.telegramUsername}.
+          Admin will approve manually. In this V1 demo, use the button below to simulate approval.
+        </p>
 
         <button class="btn success" onclick="demoUnlock('${series.id}')">
           Demo: Approve & Unlock
         </button>
       </div>
+
+      <p class="footer-note">
+        Replace UPI ID and Telegram username inside data.js before real launch.
+      </p>
     </div>
   `);
 }
@@ -843,38 +1002,115 @@ function adminPage() {
     <div class="section-title">
       <div>
         <h2>Admin Panel V1</h2>
-        <p class="muted">Demo admin area. Real upload and approval will come later with Supabase.</p>
+        <p class="muted">
+          This is a demo admin panel. In V1, add PDFs by editing data.js from GitHub.
+        </p>
       </div>
     </div>
 
     <div class="grid two-column">
       <div class="panel">
-        <h3>PDF Resource Manager Demo</h3>
+        <h3>How to Add a PDF</h3>
 
-        <input class="field" placeholder="PDF title">
-        <select class="field">
-          <option>Concise Notes PDF</option>
-          <option>DPP PDF</option>
-          <option>PYQ PDF</option>
-          <option>Test PDF</option>
-          <option>Mind Map PDF</option>
-        </select>
-        <input class="field" placeholder="Subject">
-        <input class="field" placeholder="Chapter">
-        <input class="field" placeholder="PDF link">
+        <p class="muted">Open data.js and add a new object inside MATERIALS.</p>
 
-        <button class="btn">Add PDF Demo</button>
+        <div class="item">
+          <pre style="white-space:pre-wrap; color:#cfe0f2;">
+{
+  id: 999,
+  seriesId: "physics-dpp",
+  title: "Kinematics DPP Set 2",
+  type: "DPP PDF",
+  subject: "Physics",
+  chapter: "Kinematics",
+  update: "New",
+  fileUrl: "YOUR_PDF_LINK",
+  description: "Practice PDF for Kinematics."
+}
+          </pre>
+        </div>
       </div>
 
       <div class="panel">
-        <h3>Upcoming Admin Powers</h3>
+        <h3>Current App Data</h3>
+
+        <div class="grid stats" style="grid-template-columns: repeat(2, 1fr);">
+          ${statCard("Series", SERIES.length)}
+          ${statCard("PDFs", MATERIALS.length)}
+          ${statCard("Questions", QUESTIONS.length)}
+          ${statCard("Unlocked", state.unlockedSeries.length)}
+        </div>
 
         <div class="list">
-          <div class="item">Add new PDF resources</div>
-          <div class="item">Approve UPI screenshots</div>
-          <div class="item">Unlock paid series</div>
-          <div class="item">Add questions and solutions</div>
-          <div class="item">Send announcements</div>
+          <div class="item">Add new series in SERIES array</div>
+          <div class="item">Add PDFs in MATERIALS array</div>
+          <div class="item">Add quiz questions in QUESTIONS array</div>
+          <div class="item">Change UPI and Telegram in APP_CONFIG</div>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+function bookmarksPage() {
+  const savedQuestions = state.bookmarkedQuestions
+    .map((id) => QUESTIONS.find((q) => q.id === id))
+    .filter(Boolean);
+
+  const savedMaterials = state.bookmarkedMaterials
+    .map((id) => MATERIALS.find((m) => m.id === id))
+    .filter(Boolean);
+
+  return layout(`
+    <div class="section-title">
+      <div>
+        <h2>Bookmarks</h2>
+        <p class="muted">Saved questions and PDF resources.</p>
+      </div>
+    </div>
+
+    <div class="grid two-column">
+      <div class="panel">
+        <h3>Saved PDF Resources</h3>
+
+        <div class="list">
+          ${
+            savedMaterials.length
+              ? savedMaterials
+                  .map(
+                    (m) => `
+                    <div class="item">
+                      <h4>${m.title}</h4>
+                      <div class="muted">${m.subject} • ${m.chapter}</div>
+                      <button class="btn secondary" style="margin-top:10px;" onclick="openMaterial(${m.id})">Open</button>
+                    </div>
+                  `
+                  )
+                  .join("")
+              : `<p class="muted">No PDF bookmarks yet.</p>`
+          }
+        </div>
+      </div>
+
+      <div class="panel">
+        <h3>Saved Questions</h3>
+
+        <div class="list">
+          ${
+            savedQuestions.length
+              ? savedQuestions
+                  .map(
+                    (q) => `
+                    <div class="item">
+                      <h4>${q.question}</h4>
+                      <div class="muted">${q.subject} • ${q.chapter}</div>
+                      <p>${q.solution}</p>
+                    </div>
+                  `
+                  )
+                  .join("")
+              : `<p class="muted">No question bookmarks yet.</p>`
+          }
         </div>
       </div>
     </div>
@@ -882,15 +1118,17 @@ function adminPage() {
 }
 
 function answerQuestion(questionId, selectedIndex) {
-  const q = QUESTIONS.find((x) => x.id === questionId);
+  const question = QUESTIONS.find((q) => q.id === questionId);
+
+  if (!question) return;
 
   state.attempts[questionId] = {
     questionId,
     selected: selectedIndex,
-    status: selectedIndex === q.correct ? "correct" : "incorrect",
-    seriesId: q.seriesId,
-    subject: q.subject,
-    chapter: q.chapter,
+    status: selectedIndex === question.correct ? "correct" : "incorrect",
+    seriesId: question.seriesId,
+    subject: question.subject,
+    chapter: question.chapter,
     time: Date.now()
   };
 
@@ -899,15 +1137,17 @@ function answerQuestion(questionId, selectedIndex) {
 }
 
 function skipQuestion(questionId) {
-  const q = QUESTIONS.find((x) => x.id === questionId);
+  const question = QUESTIONS.find((q) => q.id === questionId);
+
+  if (!question) return;
 
   state.attempts[questionId] = {
     questionId,
     selected: null,
     status: "skipped",
-    seriesId: q.seriesId,
-    subject: q.subject,
-    chapter: q.chapter,
+    seriesId: question.seriesId,
+    subject: question.subject,
+    chapter: question.chapter,
     time: Date.now()
   };
 
@@ -916,13 +1156,47 @@ function skipQuestion(questionId) {
 }
 
 function bookmarkQuestion(questionId) {
-  if (!state.bookmarks.includes(questionId)) {
-    state.bookmarks.push(questionId);
+  if (!state.bookmarkedQuestions.includes(questionId)) {
+    state.bookmarkedQuestions.push(questionId);
     save();
     alert("Question bookmarked");
   } else {
-    alert("Already bookmarked");
+    alert("Question already bookmarked");
   }
+}
+
+function bookmarkMaterial(materialId) {
+  if (!state.bookmarkedMaterials.includes(materialId)) {
+    state.bookmarkedMaterials.push(materialId);
+    save();
+    alert("PDF resource bookmarked");
+  } else {
+    alert("PDF already bookmarked");
+  }
+}
+
+function toggleMaterialComplete(materialId) {
+  if (state.completedMaterials[materialId]) {
+    delete state.completedMaterials[materialId];
+  } else {
+    state.completedMaterials[materialId] = true;
+  }
+
+  save();
+  render();
+}
+
+function openMaterial(materialId) {
+  const material = MATERIALS.find((m) => m.id === materialId);
+
+  if (!material) return;
+
+  if (!material.fileUrl) {
+    alert("PDF link not added yet. Add fileUrl in data.js for this material.");
+    return;
+  }
+
+  window.open(material.fileUrl, "_blank");
 }
 
 function demoUnlock(seriesId) {
@@ -936,17 +1210,6 @@ function demoUnlock(seriesId) {
 
   save();
   render();
-}
-
-function openMaterial(materialId) {
-  const material = MATERIALS.find((m) => m.id === materialId);
-
-  if (!material.fileUrl) {
-    alert("PDF link not added yet. Later you will paste your Google Drive or Supabase PDF link here.");
-    return;
-  }
-
-  window.open(material.fileUrl, "_blank");
 }
 
 function toggleMenu() {
@@ -974,13 +1237,15 @@ function capitalize(text) {
 function render() {
   const app = document.getElementById("app");
 
+  if (!app) return;
+
   if (state.view === "home") {
     app.innerHTML = homePage();
     return;
   }
 
   if (state.view === "free") {
-    app.innerHTML = freePage();
+    app.innerHTML = freeDashboardPage();
     return;
   }
 
@@ -997,8 +1262,12 @@ function render() {
   if (state.view === "practice") {
     app.innerHTML = layout(`
       <div class="section-title">
-        <h2>Practice Zone</h2>
+        <div>
+          <h2>Practice Zone</h2>
+          <p class="muted">Free practice questions with tracking.</p>
+        </div>
       </div>
+
       ${practiceTab("free")}
     `);
     return;
@@ -1021,6 +1290,16 @@ function render() {
 
   if (state.view === "admin") {
     app.innerHTML = adminPage();
+    return;
+  }
+
+  if (state.view === "bookmarks") {
+    app.innerHTML = bookmarksPage();
+    return;
+  }
+
+  if (state.view === "updates") {
+    app.innerHTML = globalUpdatesPage();
     return;
   }
 
