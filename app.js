@@ -156,6 +156,8 @@ function layout(content) {
         </div>
 
         <div class="nav-title">Main</div>
+        ${currentUser ? navButton("profile", "My Profile") :
+          navButton("auth", "Login / Signup")}
         ${navButton("home", "Dashboard")}
         ${navButton("free", "Free Dashboard")}
         ${navButton("series", "All Series")}
@@ -186,12 +188,15 @@ ${navButton("premium", "Premium & UPI")}
             oninput="searchCards(this.value)"
           />
 
-          <div class="profile">
-            <div class="avatar">J</div>
-            <div>
-              <strong>JEE Aspirant</strong>
-              <div class="muted" style="font-size: 12px;">${APP_CONFIG.exam}</div>
-            </div>
+          <div class="profile" onclick="${currentUser ? "setView('profile')" : "setView('auth')"}" style="cursor:pointer;">
+  <div class="avatar">${currentUser ? currentUser.email.charAt(0).toUpperCase() : "J"}</div>
+  <div>
+    <strong>${currentUser ? currentUser.email : "Login"}</strong>
+    <div class="muted" style="font-size: 12px;">
+      ${currentUser ? "User ID ready" : "Create free account"}
+    </div>
+  </div>
+</div>
           </div>
         </div>
 
@@ -1239,12 +1244,237 @@ function searchCards(value) {
 function capitalize(text) {
   return text.charAt(0).toUpperCase() + text.slice(1);
 }
+function authPage() {
+  return layout(`
+    <div class="section-title">
+      <div>
+        <h2>Login / Signup</h2>
+        <p class="muted">
+          Create a free account to get your unique User ID and request access to paid series.
+        </p>
+      </div>
+    </div>
 
+    <div class="grid two-column">
+      <div class="panel">
+        <h3>Create Account</h3>
+
+        <input class="field" id="signupEmail" type="email" placeholder="Email address">
+        <input class="field" id="signupPassword" type="password" placeholder="Password">
+        <input class="field" id="signupName" type="text" placeholder="Your name">
+        <input class="field" id="signupTelegram" type="text" placeholder="Telegram username, example: @yourname">
+
+        <button class="btn" onclick="signupUser()">Create Free Account</button>
+
+        <p class="muted" style="margin-top:12px;">
+          After signup, your unique User ID will be generated automatically.
+        </p>
+      </div>
+
+      <div class="panel">
+        <h3>Login</h3>
+
+        <input class="field" id="loginEmail" type="email" placeholder="Email address">
+        <input class="field" id="loginPassword" type="password" placeholder="Password">
+
+        <button class="btn success" onclick="loginUser()">Login</button>
+
+        <p class="muted" style="margin-top:12px;">
+          Login to check your access requests and unlocked resources.
+        </p>
+      </div>
+    </div>
+  `);
+}
+
+function profilePage() {
+  if (!currentUser) {
+    return authPage();
+  }
+
+  return layout(`
+    <div class="section-title">
+      <div>
+        <h2>My Profile</h2>
+        <p class="muted">Your account details and unique User ID.</p>
+      </div>
+      <button class="btn danger" onclick="logoutUser()">Logout</button>
+    </div>
+
+    <div class="grid two-column">
+      <div class="panel">
+        <h3>Account Details</h3>
+
+        <table class="table">
+          <tr>
+            <th>Field</th>
+            <th>Value</th>
+          </tr>
+          <tr>
+            <td>Email</td>
+            <td>${currentUser.email}</td>
+          </tr>
+          <tr>
+            <td>User ID</td>
+            <td style="word-break:break-all;">${currentUser.id}</td>
+          </tr>
+          <tr>
+            <td>Name</td>
+            <td>${currentProfile?.full_name || "Not added"}</td>
+          </tr>
+          <tr>
+            <td>Telegram</td>
+            <td>${currentProfile?.telegram_username || "Not added"}</td>
+          </tr>
+        </table>
+
+        <button class="btn secondary" style="margin-top:12px;" onclick="copyUserId()">
+          Copy User ID
+        </button>
+      </div>
+
+      <div class="panel">
+        <h3>How Paid Access Works</h3>
+
+        <div class="list">
+          <div class="item">
+            1. Open any paid series.
+          </div>
+          <div class="item">
+            2. Click Request Access.
+          </div>
+          <div class="item">
+            3. Send your User ID on Telegram.
+          </div>
+          <div class="item">
+            4. Admin approves your access after payment verification.
+          </div>
+        </div>
+      </div>
+    </div>
+  `);
+}
+
+async function signupUser() {
+  const email = document.getElementById("signupEmail").value.trim();
+  const password = document.getElementById("signupPassword").value.trim();
+  const fullName = document.getElementById("signupName").value.trim();
+  const telegram = document.getElementById("signupTelegram").value.trim();
+
+  if (!email || !password) {
+    alert("Enter email and password");
+    return;
+  }
+
+  const { data, error } = await supabase.auth.signUp({
+    email,
+    password
+  });
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  currentUser = data.user;
+
+  if (currentUser) {
+    await supabase.from("profiles").insert({
+      id: currentUser.id,
+      email: currentUser.email,
+      full_name: fullName,
+      telegram_username: telegram
+    });
+  }
+
+  await loadCurrentUser();
+
+  alert("Account created. Your unique User ID is ready.");
+  setView("profile");
+}
+
+async function loginUser() {
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value.trim();
+
+  if (!email || !password) {
+    alert("Enter email and password");
+    return;
+  }
+
+  const { error } = await supabase.auth.signInWithPassword({
+    email,
+    password
+  });
+
+  if (error) {
+    alert(error.message);
+    return;
+  }
+
+  await loadCurrentUser();
+
+  alert("Logged in successfully");
+  setView("profile");
+}
+
+async function logoutUser() {
+  await supabase.auth.signOut();
+
+  currentUser = null;
+  currentProfile = null;
+  currentIsAdmin = false;
+
+  state.view = "home";
+  save();
+  render();
+}
+
+async function loadCurrentUser() {
+  const { data } = await supabase.auth.getUser();
+
+  currentUser = data.user || null;
+  currentProfile = null;
+  currentIsAdmin = false;
+
+  if (!currentUser) return;
+
+  const { data: profile } = await supabase
+    .from("profiles")
+    .select("*")
+    .eq("id", currentUser.id)
+    .single();
+
+  currentProfile = profile || null;
+
+  const { data: adminData } = await supabase
+    .from("admins")
+    .select("*")
+    .eq("user_id", currentUser.id)
+    .maybeSingle();
+
+  currentIsAdmin = !!adminData;
+}
+
+function copyUserId() {
+  if (!currentUser) return;
+
+  navigator.clipboard.writeText(currentUser.id);
+  alert("User ID copied");
+}
 function render() {
   const app = document.getElementById("app");
 
   if (!app) return;
+if (state.view === "auth") {
+  app.innerHTML = authPage();
+  return;
+}
 
+if (state.view === "profile") {
+  app.innerHTML = profilePage();
+  return;
+}
   if (state.view === "home") {
     app.innerHTML = homePage();
     return;
@@ -1308,4 +1538,9 @@ function render() {
   app.innerHTML = homePage();
 }
 
-render();
+async function initApp() {
+  await loadCurrentUser();
+  render();
+}
+
+initApp();
