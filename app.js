@@ -1,30 +1,143 @@
-if (
-  typeof APP_CONFIG === "undefined" ||
-  typeof SERIES === "undefined" ||
-  typeof MATERIALS === "undefined" ||
-  typeof QUESTIONS === "undefined"
-) {
-  alert("data.js is not loaded. Make sure index.html loads data.js before app.js");
-}
+const STORAGE_KEY = "rankgrid_jee_supabase_v1_fixed";
 
-const STORAGE_KEY = "rankgrid_jee_final_v1";
+let currentUser = null;
+let currentProfile = null;
+let currentIsAdmin = false;
+
+let remoteSeries = [];
+let remoteMaterials = [];
+let remoteRequests = [];
 
 let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
   view: "home",
   activeSeries: "free",
   activeTab: "overview",
-  unlockedSeries: ["free"],
   attempts: {},
   completedMaterials: {},
   bookmarkedQuestions: [],
   bookmarkedMaterials: [],
   paymentSeries: null
 };
-let currentUser = null;
-let currentProfile = null;
-let currentIsAdmin = false;
+
 function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+}
+
+function getConfig() {
+  if (typeof APP_CONFIG !== "undefined") {
+    return APP_CONFIG;
+  }
+
+  return {
+    appName: "RankGrid JEE",
+    tagline: "Track. Practice. Improve.",
+    exam: "JEE 2028",
+    telegramUsername: "@yourusername"
+  };
+}
+
+function getLocalSeries() {
+  if (typeof SERIES !== "undefined" && Array.isArray(SERIES)) {
+    return SERIES;
+  }
+
+  return [
+    {
+      id: "free",
+      title: "Free JEE 2028 Dashboard",
+      subject: "All Subjects",
+      type: "Free Material",
+      price: 0,
+      free: true,
+      description: "Free dashboard with PDFs, practice questions and tracking."
+    }
+  ];
+}
+
+function getLocalMaterials() {
+  if (typeof MATERIALS !== "undefined" && Array.isArray(MATERIALS)) {
+    return MATERIALS;
+  }
+
+  return [];
+}
+
+function getLocalQuestions() {
+  if (typeof QUESTIONS !== "undefined" && Array.isArray(QUESTIONS)) {
+    return QUESTIONS;
+  }
+
+  return [];
+}
+
+function normalizeSeries(series) {
+  return {
+    id: series.id,
+    title: series.title || "Untitled Series",
+    subject: series.subject || "All Subjects",
+    type: series.type || "PDF Series",
+    price: series.price || 0,
+    free: series.free === true || series.is_free === true,
+    description: series.description || ""
+  };
+}
+
+function normalizeMaterial(material) {
+  return {
+    id: String(material.id),
+    seriesId: material.seriesId || material.series_id || "free",
+    title: material.title || "Untitled PDF",
+    type: material.type || material.material_type || "PDF",
+    subject: material.subject || "",
+    chapter: material.chapter || "",
+    update: material.update || "Available",
+    description: material.description || "",
+    fileUrl: material.fileUrl || material.file_url || "",
+    storagePath: material.storagePath || material.storage_path || "",
+    isFree: material.isFree === true || material.is_free === true
+  };
+}
+
+function getAllSeries() {
+  if (remoteSeries.length > 0) {
+    return remoteSeries.map(normalizeSeries);
+  }
+
+  return getLocalSeries().map(normalizeSeries);
+}
+
+function getAllMaterials() {
+  if (remoteMaterials.length > 0) {
+    return remoteMaterials.map(normalizeMaterial);
+  }
+
+  return getLocalMaterials().map(normalizeMaterial);
+}
+
+function getSeries(seriesId) {
+  const allSeries = getAllSeries();
+
+  return (
+    allSeries.find((series) => series.id === seriesId) ||
+    allSeries.find((series) => series.id === "free") ||
+    {
+      id: "free",
+      title: "Free JEE 2028 Dashboard",
+      subject: "All Subjects",
+      type: "Free Material",
+      price: 0,
+      free: true,
+      description: "Free dashboard."
+    }
+  );
+}
+
+function getSeriesMaterials(seriesId) {
+  return getAllMaterials().filter((material) => material.seriesId === seriesId);
+}
+
+function getSeriesQuestions(seriesId) {
+  return getLocalQuestions().filter((question) => question.seriesId === seriesId);
 }
 
 function setView(view) {
@@ -47,67 +160,100 @@ function setTab(tab) {
   render();
 }
 
-function isUnlocked(seriesId) {
-  return state.unlockedSeries.includes(seriesId);
+function isApprovedForSeries(seriesId) {
+  const series = getSeries(seriesId);
+
+  if (!series) return false;
+  if (series.free) return true;
+  if (currentIsAdmin) return true;
+  if (!currentUser) return false;
+
+  return remoteRequests.some(function (request) {
+    return (
+      request.series_id === seriesId &&
+      request.user_id === currentUser.id &&
+      request.status === "approved"
+    );
+  });
 }
 
-function getSeries(seriesId) {
-  return SERIES.find((series) => series.id === seriesId) || SERIES[0];
-}
+function hasPendingRequest(seriesId) {
+  if (!currentUser) return false;
 
-function getSeriesMaterials(seriesId) {
-  return MATERIALS.filter((material) => material.seriesId === seriesId);
-}
-
-function getSeriesQuestions(seriesId) {
-  return QUESTIONS.filter((question) => question.seriesId === seriesId);
+  return remoteRequests.some(function (request) {
+    return (
+      request.series_id === seriesId &&
+      request.user_id === currentUser.id &&
+      request.status === "pending"
+    );
+  });
 }
 
 function getAttemptsArray() {
-  return Object.values(state.attempts);
+  return Object.values(state.attempts || {});
 }
 
-function getQuestionStats(seriesId = null) {
+function getQuestionStats(seriesId) {
   let attempts = getAttemptsArray();
 
   if (seriesId) {
-    attempts = attempts.filter((attempt) => attempt.seriesId === seriesId);
+    attempts = attempts.filter(function (attempt) {
+      return attempt.seriesId === seriesId;
+    });
   }
 
   const total = attempts.length;
-  const solved = attempts.filter((attempt) => attempt.status !== "skipped").length;
-  const correct = attempts.filter((attempt) => attempt.status === "correct").length;
-  const incorrect = attempts.filter((attempt) => attempt.status === "incorrect").length;
-  const skipped = attempts.filter((attempt) => attempt.status === "skipped").length;
+  const solved = attempts.filter(function (attempt) {
+    return attempt.status !== "skipped";
+  }).length;
+
+  const correct = attempts.filter(function (attempt) {
+    return attempt.status === "correct";
+  }).length;
+
+  const incorrect = attempts.filter(function (attempt) {
+    return attempt.status === "incorrect";
+  }).length;
+
+  const skipped = attempts.filter(function (attempt) {
+    return attempt.status === "skipped";
+  }).length;
+
   const accuracy = solved ? Math.round((correct / solved) * 1000) / 10 : 0;
 
   return {
-    total,
-    solved,
-    correct,
-    incorrect,
-    skipped,
-    accuracy
+    total: total,
+    solved: solved,
+    correct: correct,
+    incorrect: incorrect,
+    skipped: skipped,
+    accuracy: accuracy
   };
 }
 
-function getMaterialStats(seriesId = null) {
-  let materials = MATERIALS;
+function getMaterialStats(seriesId) {
+  let materials = getAllMaterials();
 
   if (seriesId) {
-    materials = materials.filter((material) => material.seriesId === seriesId);
+    materials = materials.filter(function (material) {
+      return material.seriesId === seriesId;
+    });
   }
 
   const total = materials.length;
-  const completed = materials.filter((material) => state.completedMaterials[material.id]).length;
+
+  const completed = materials.filter(function (material) {
+    return state.completedMaterials[String(material.id)];
+  }).length;
+
   const pending = total - completed;
   const completion = total ? Math.round((completed / total) * 100) : 0;
 
   return {
-    total,
-    completed,
-    pending,
-    completion
+    total: total,
+    completed: completed,
+    pending: pending,
+    completion: completion
   };
 }
 
@@ -115,11 +261,14 @@ function getOverallCompletion(seriesId) {
   const materialStats = getMaterialStats(seriesId);
   const questions = getSeriesQuestions(seriesId);
 
-  if (questions.length === 0) {
+  if (!questions.length) {
     return materialStats.completion;
   }
 
-  const attemptedQuestions = questions.filter((q) => state.attempts[q.id]).length;
+  const attemptedQuestions = questions.filter(function (question) {
+    return state.attempts[question.id];
+  }).length;
+
   const questionCompletion = Math.round((attemptedQuestions / questions.length) * 100);
 
   return Math.round((materialStats.completion + questionCompletion) / 2);
@@ -144,20 +293,23 @@ function navButton(view, label) {
 }
 
 function layout(content) {
+  const config = getConfig();
+
   return `
     <div class="app-shell">
       <aside class="sidebar" id="sidebar">
         <div class="logo">
           <div class="logo-mark">RG</div>
           <div>
-            <h1>${APP_CONFIG.appName}</h1>
-            <p>${APP_CONFIG.tagline}</p>
+            <h1>${config.appName}</h1>
+            <p>${config.tagline}</p>
           </div>
         </div>
 
+        <div class="nav-title">Account</div>
+        ${currentUser ? navButton("profile", "My Profile") : navButton("auth", "Login / Signup")}
+
         <div class="nav-title">Main</div>
-        ${currentUser ? navButton("profile", "My Profile") :
-          navButton("auth", "Login / Signup")}
         ${navButton("home", "Dashboard")}
         ${navButton("free", "Free Dashboard")}
         ${navButton("series", "All Series")}
@@ -165,16 +317,24 @@ function layout(content) {
         ${navButton("mistakes", "Mistake Book")}
         ${navButton("analytics", "Analytics")}
 
-        <div class="nav-title">PDF Resources</div>
+        <div class="nav-title">Resources</div>
         ${navButton("bookmarks", "Bookmarks")}
         ${navButton("updates", "Updates")}
 
-        <div class="nav-title">Business</div>
-${navButton("premium", "Premium & UPI")}
+        <div class="nav-title">Premium</div>
+        ${navButton("premium", "Premium Series")}
+
+        ${
+          currentIsAdmin
+            ? `
+              <div class="nav-title">Admin</div>
+              ${navButton("admin", "Admin Approval")}
+            `
+            : ""
+        }
 
         <div class="footer-note">
-          V1 works without backend. Progress is saved in this browser.
-          Paid unlock is manual demo. V2 will add login, database and protected PDFs.
+          Login, access request and protected PDFs are handled through Supabase.
         </div>
       </aside>
 
@@ -188,15 +348,18 @@ ${navButton("premium", "Premium & UPI")}
             oninput="searchCards(this.value)"
           />
 
-          <div class="profile" onclick="${currentUser ? "setView('profile')" : "setView('auth')"}" style="cursor:pointer;">
-  <div class="avatar">${currentUser ? currentUser.email.charAt(0).toUpperCase() : "J"}</div>
-  <div>
-    <strong>${currentUser ? currentUser.email : "Login"}</strong>
-    <div class="muted" style="font-size: 12px;">
-      ${currentUser ? "User ID ready" : "Create free account"}
-    </div>
-  </div>
-</div>
+          <div 
+            class="profile" 
+            onclick="${currentUser ? "setView('profile')" : "setView('auth')"}" 
+            style="cursor:pointer;"
+          >
+            <div class="avatar">${currentUser ? currentUser.email.charAt(0).toUpperCase() : "J"}</div>
+            <div>
+              <strong>${currentUser ? currentUser.email : "Login"}</strong>
+              <div class="muted" style="font-size:12px;">
+                ${currentUser ? "User ID active" : "Create free account"}
+              </div>
+            </div>
           </div>
         </div>
 
@@ -207,19 +370,20 @@ ${navButton("premium", "Premium & UPI")}
 }
 
 function homePage() {
+  const config = getConfig();
   const qStats = getQuestionStats();
   const mStats = getMaterialStats();
 
   return layout(`
     <section class="hero">
       <div class="hero-card">
-        <span class="badge">${APP_CONFIG.exam} Practice Dashboard</span>
+        <span class="badge">${config.exam} Practice Dashboard</span>
 
         <h2>Professional dashboard for PDFs, practice, tests and progress tracking.</h2>
 
         <p>
-          ${APP_CONFIG.appName} gives free and premium subject-wise PDF series with separate dashboards.
-          Track PDF completion, solved questions, correct, incorrect, skipped, accuracy, mistakes and weekly updates.
+          ${config.appName} gives free and premium subject-wise PDF series with separate dashboards.
+          Track PDF completion, solved questions, correct, incorrect, skipped, accuracy, mistakes and updates.
         </p>
 
         <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:20px;">
@@ -229,45 +393,46 @@ function homePage() {
       </div>
 
       <div class="panel">
-        <div class="kpi-ring" style="--percentage: ${qStats.accuracy * 3.6}deg;">
+        <div class="kpi-ring" style="--percentage:${qStats.accuracy * 3.6}deg;">
           <div>
             ${qStats.accuracy}%<br>
             <span class="muted" style="font-size:12px;">Accuracy</span>
           </div>
         </div>
 
-        <div class="grid stats" style="grid-template-columns: repeat(2, 1fr);">
+        <div class="grid stats" style="grid-template-columns:repeat(2,1fr);">
           ${statCard("Solved", qStats.solved)}
           ${statCard("Correct", qStats.correct)}
           ${statCard("PDF Done", mStats.completed)}
-          ${statCard("Unlocked", state.unlockedSeries.length)}
+          ${statCard("Series", getAllSeries().length)}
         </div>
       </div>
     </section>
 
     <div class="grid stats">
-      ${statCard("Total Series", SERIES.length)}
-      ${statCard("PDF Resources", MATERIALS.length)}
-      ${statCard("Practice Qs", QUESTIONS.length)}
+      ${statCard("Total Series", getAllSeries().length)}
+      ${statCard("PDF Resources", getAllMaterials().length)}
+      ${statCard("Practice Qs", getLocalQuestions().length)}
       ${statCard("PDF Progress", mStats.completion + "%")}
     </div>
 
     <div class="section-title">
       <div>
         <h2>Featured Series</h2>
-        <p class="muted">Free and premium dashboards for JEE 2028 preparation.</p>
+        <p class="muted">Free and premium dashboards for JEE preparation.</p>
       </div>
       <button class="btn secondary" onclick="setView('series')">See All</button>
     </div>
 
     <div class="grid cards">
-      ${SERIES.slice(0, 6).map(seriesCard).join("")}
+      ${getAllSeries().slice(0, 6).map(seriesCard).join("")}
     </div>
   `);
 }
 
 function seriesCard(series) {
   const completion = getOverallCompletion(series.id);
+  const approved = isApprovedForSeries(series.id);
 
   return `
     <div 
@@ -293,12 +458,12 @@ function seriesCard(series) {
 
       <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;">
         <button class="btn" onclick="setSeries('${series.id}')">
-          ${isUnlocked(series.id) ? "Open Dashboard" : "Preview"}
+          ${approved ? "Open Dashboard" : "Preview"}
         </button>
 
         ${
-          !isUnlocked(series.id)
-            ? `<button class="btn warning" onclick="paymentPage('${series.id}')">Buy</button>`
+          !approved && !series.free
+            ? `<button class="btn warning" onclick="requestAccessPage('${series.id}')">Request Access</button>`
             : ""
         }
       </div>
@@ -319,7 +484,7 @@ function allSeriesPage() {
       <div>
         <h2>All PDF Series</h2>
         <p class="muted">
-          Each series has its own dashboard, PDF library, progress, practice, analytics and update section.
+          Each series has its own dashboard, PDF library, progress, practice, analytics and updates.
         </p>
       </div>
     </div>
@@ -333,57 +498,52 @@ function allSeriesPage() {
     </div>
 
     <div class="grid cards" id="seriesGrid">
-      ${SERIES.map(seriesCard).join("")}
+      ${getAllSeries().map(seriesCard).join("")}
     </div>
   `);
 }
 
 function filterSeries(filter) {
   const grid = document.getElementById("seriesGrid");
-
   if (!grid) return;
 
-  let filtered = SERIES;
+  let filtered = getAllSeries();
 
   if (filter === "physics") {
-    filtered = SERIES.filter((s) => s.subject.toLowerCase().includes("physics"));
+    filtered = filtered.filter(function (series) {
+      return series.subject.toLowerCase().includes("physics");
+    });
   }
 
   if (filter === "chemistry") {
-    filtered = SERIES.filter((s) => s.subject.toLowerCase().includes("chemistry"));
+    filtered = filtered.filter(function (series) {
+      return series.subject.toLowerCase().includes("chemistry");
+    });
   }
 
   if (filter === "maths") {
-    filtered = SERIES.filter((s) => s.subject.toLowerCase().includes("maths"));
+    filtered = filtered.filter(function (series) {
+      return series.subject.toLowerCase().includes("maths");
+    });
   }
 
   if (filter === "free") {
-    filtered = SERIES.filter((s) => s.free);
-  }
-
-  if (filter === "all") {
-    filtered = SERIES;
+    filtered = filtered.filter(function (series) {
+      return series.free;
+    });
   }
 
   grid.innerHTML = filtered.map(seriesCard).join("");
 }
 
-function seriesDetailPage(forceFree = false) {
+function seriesDetailPage(forceFree) {
   const seriesId = forceFree ? "free" : state.activeSeries;
   const series = getSeries(seriesId);
-  const locked = !isUnlocked(seriesId);
+  const approved = isApprovedForSeries(seriesId);
   const qStats = getQuestionStats(seriesId);
   const mStats = getMaterialStats(seriesId);
 
-  const tabs = [
-    "overview",
-    "materials",
-    "practice",
-    "tests",
-    "mistakes",
-    "analytics",
-    "updates"
-  ];
+  const tabs = ["overview", "materials", "practice", "tests", "mistakes", "analytics", "updates"];
 
   return layout(`
     <div class="section-title">
@@ -394,9 +554,9 @@ function seriesDetailPage(forceFree = false) {
       </div>
 
       ${
-        locked
-          ? `<button class="btn warning" onclick="paymentPage('${series.id}')">Unlock ₹${series.price}</button>`
-          : `<button class="btn success">Unlocked</button>`
+        approved
+          ? `<button class="btn success">Access Active</button>`
+          : `<button class="btn warning" onclick="requestAccessPage('${series.id}')">Request Access</button>`
       }
     </div>
 
@@ -409,39 +569,48 @@ function seriesDetailPage(forceFree = false) {
 
     <div class="tabs">
       ${tabs
-        .map(
-          (tab) => `
-          <button class="tab ${state.activeTab === tab ? "active" : ""}" onclick="setTab('${tab}')">
-            ${capitalize(tab)}
-          </button>
-        `
-        )
+        .map(function (tab) {
+          return `
+            <button class="tab ${state.activeTab === tab ? "active" : ""}" onclick="setTab('${tab}')">
+              ${capitalize(tab)}
+            </button>
+          `;
+        })
         .join("")}
     </div>
 
-    ${locked ? lockedPanel(series) : tabContent(seriesId, state.activeTab)}
+    ${approved ? tabContent(seriesId, state.activeTab) : lockedPanel(series)}
   `);
 }
 
 function lockedPanel(series) {
   const materials = getSeriesMaterials(series.id);
+  const pending = hasPendingRequest(series.id);
 
   return `
     <div class="grid two-column">
       <div class="panel">
         <h3>This premium dashboard is locked</h3>
+
         <p class="muted">
-          Unlock this series to access PDF resources, completion tracking, updates and practice dashboard.
+          Request access first. Payment details will be shared privately on Telegram.
+          Your UPI ID is not shown publicly on this website.
         </p>
 
-        <div class="payment-box">
-          <strong>Manual UPI Unlock</strong>
-          <p>
-            Pay ₹${series.price} using UPI, send screenshot to ${APP_CONFIG.telegramUsername},
-            then access will be approved manually.
-          </p>
-          <button class="btn warning" onclick="paymentPage('${series.id}')">Continue to Payment</button>
-        </div>
+        ${
+          pending
+            ? `
+              <div class="payment-box">
+                <strong>Request already pending</strong>
+                <p>DM admin on Telegram with your User ID and payment screenshot.</p>
+              </div>
+            `
+            : `
+              <button class="btn warning" onclick="requestAccessPage('${series.id}')">
+                Request Access
+              </button>
+            `
+        }
       </div>
 
       <div class="panel">
@@ -452,14 +621,14 @@ function lockedPanel(series) {
             materials.length
               ? materials
                   .slice(0, 5)
-                  .map(
-                    (m) => `
-                    <div class="item">
-                      <h4>${m.title}</h4>
-                      <div class="muted">${m.type} • ${m.chapter}</div>
-                    </div>
-                  `
-                  )
+                  .map(function (material) {
+                    return `
+                      <div class="item">
+                        <h4>${material.title}</h4>
+                        <div class="muted">${material.type} • ${material.chapter}</div>
+                      </div>
+                    `;
+                  })
                   .join("")
               : `<p class="muted">PDFs will be added soon.</p>`
           }
@@ -492,42 +661,15 @@ function overviewTab(seriesId) {
         <h3>Series Overview</h3>
 
         <table class="table">
-          <tr>
-            <th>Metric</th>
-            <th>Value</th>
-          </tr>
-          <tr>
-            <td>Total PDFs</td>
-            <td>${mStats.total}</td>
-          </tr>
-          <tr>
-            <td>PDFs Completed</td>
-            <td>${mStats.completed}</td>
-          </tr>
-          <tr>
-            <td>PDF Completion</td>
-            <td>${mStats.completion}%</td>
-          </tr>
-          <tr>
-            <td>Total Problems Solved</td>
-            <td>${qStats.solved}</td>
-          </tr>
-          <tr>
-            <td>Correct</td>
-            <td>${qStats.correct}</td>
-          </tr>
-          <tr>
-            <td>Incorrect</td>
-            <td>${qStats.incorrect}</td>
-          </tr>
-          <tr>
-            <td>Skipped</td>
-            <td>${qStats.skipped}</td>
-          </tr>
-          <tr>
-            <td>Accuracy</td>
-            <td>${qStats.accuracy}%</td>
-          </tr>
+          <tr><th>Metric</th><th>Value</th></tr>
+          <tr><td>Total PDFs</td><td>${mStats.total}</td></tr>
+          <tr><td>PDFs Completed</td><td>${mStats.completed}</td></tr>
+          <tr><td>PDF Completion</td><td>${mStats.completion}%</td></tr>
+          <tr><td>Total Problems Solved</td><td>${qStats.solved}</td></tr>
+          <tr><td>Correct</td><td>${qStats.correct}</td></tr>
+          <tr><td>Incorrect</td><td>${qStats.incorrect}</td></tr>
+          <tr><td>Skipped</td><td>${qStats.skipped}</td></tr>
+          <tr><td>Accuracy</td><td>${qStats.accuracy}%</td></tr>
         </table>
       </div>
 
@@ -539,20 +681,21 @@ function overviewTab(seriesId) {
             materials.length
               ? materials
                   .slice(0, 6)
-                  .map(
-                    (m) => `
-                    <div class="item">
-                      <h4>${m.title}</h4>
-                      <div class="muted">${m.type} • ${m.chapter} • ${m.update}</div>
-                      <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-                        <button class="btn secondary" onclick="openMaterial(${m.id})">Open</button>
-                        <button class="btn secondary" onclick="toggleMaterialComplete(${m.id})">
-                          ${state.completedMaterials[m.id] ? "Completed" : "Mark Done"}
-                        </button>
+                  .map(function (material) {
+                    return `
+                      <div class="item">
+                        <h4>${material.title}</h4>
+                        <div class="muted">${material.type} • ${material.chapter}</div>
+
+                        <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+                          <button class="btn secondary" onclick="openMaterial('${material.id}')">Open</button>
+                          <button class="btn secondary" onclick="toggleMaterialComplete('${material.id}')">
+                            ${state.completedMaterials[String(material.id)] ? "Completed" : "Mark Done"}
+                          </button>
+                        </div>
                       </div>
-                    </div>
-                  `
-                  )
+                    `;
+                  })
                   .join("")
               : `<p class="muted">PDF resources coming soon.</p>`
           }
@@ -570,7 +713,7 @@ function materialsTab(seriesId) {
       <div class="section-title">
         <div>
           <h3>PDF Materials Library</h3>
-          <p class="muted">Open PDFs, mark completed, and track progress.</p>
+          <p class="muted">Open PDFs, mark completed and track progress.</p>
         </div>
       </div>
 
@@ -581,59 +724,60 @@ function materialsTab(seriesId) {
           <th>Type</th>
           <th>Subject</th>
           <th>Chapter</th>
-          <th>Update</th>
           <th>Actions</th>
         </tr>
 
         ${
           materials.length
             ? materials
-                .map(
-                  (m) => `
-                <tr>
-                  <td>${state.completedMaterials[m.id] ? "Done" : "Pending"}</td>
-                  <td>
-                    <strong>${m.title}</strong>
-                    <div class="muted">${m.description || ""}</div>
-                  </td>
-                  <td>${m.type}</td>
-                  <td>${m.subject}</td>
-                  <td>${m.chapter}</td>
-                  <td>${m.update}</td>
-                  <td>
-                    <div style="display:flex; gap:6px; flex-wrap:wrap;">
-                      <button class="btn secondary" onclick="openMaterial(${m.id})">Open</button>
-                      <button class="btn secondary" onclick="toggleMaterialComplete(${m.id})">
-                        ${state.completedMaterials[m.id] ? "Undo" : "Done"}
-                      </button>
-                      <button class="btn secondary" onclick="bookmarkMaterial(${m.id})">Save</button>
-                    </div>
-                  </td>
-                </tr>
-              `
-                )
+                .map(function (material) {
+                  return `
+                    <tr>
+                      <td>${state.completedMaterials[String(material.id)] ? "Done" : "Pending"}</td>
+                      <td>
+                        <strong>${material.title}</strong>
+                        <div class="muted">${material.description || ""}</div>
+                      </td>
+                      <td>${material.type}</td>
+                      <td>${material.subject}</td>
+                      <td>${material.chapter}</td>
+                      <td>
+                        <div style="display:flex; gap:6px; flex-wrap:wrap;">
+                          <button class="btn secondary" onclick="openMaterial('${material.id}')">Open</button>
+                          <button class="btn secondary" onclick="toggleMaterialComplete('${material.id}')">
+                            ${state.completedMaterials[String(material.id)] ? "Undo" : "Done"}
+                          </button>
+                          <button class="btn secondary" onclick="bookmarkMaterial('${material.id}')">Save</button>
+                        </div>
+                      </td>
+                    </tr>
+                  `;
+                })
                 .join("")
-            : `<tr><td colspan="7">No PDF resources added yet.</td></tr>`
+            : `<tr><td colspan="6">No PDF resources added yet.</td></tr>`
         }
       </table>
     </div>
   `;
 }
 
-function practiceTab(seriesId = "free") {
-  let questions = getSeriesQuestions(seriesId);
+function practiceTab(seriesId) {
+  let questions = getSeriesQuestions(seriesId || "free");
 
-  if (questions.length === 0) {
+  if (!questions.length) {
     questions = getSeriesQuestions("free");
   }
 
-  const current = questions.find((q) => !state.attempts[q.id]) || questions[0];
+  const current =
+    questions.find(function (question) {
+      return !state.attempts[question.id];
+    }) || questions[0];
 
   if (!current) {
     return `
       <div class="panel">
         <h3>No questions added yet</h3>
-        <p class="muted">Practice questions for this series will be added soon.</p>
+        <p class="muted">Practice questions will be added soon.</p>
       </div>
     `;
   }
@@ -650,7 +794,7 @@ function practiceTab(seriesId = "free") {
         <h3 class="question">${current.question}</h3>
 
         ${current.options
-          .map((option, index) => {
+          .map(function (option, index) {
             let optionClass = "";
 
             if (attempted) {
@@ -659,10 +803,7 @@ function practiceTab(seriesId = "free") {
             }
 
             return `
-              <button 
-                class="option ${optionClass}" 
-                onclick="answerQuestion('${current.id}', ${index})"
-              >
+              <button class="option ${optionClass}" onclick="answerQuestion('${current.id}', ${index})">
                 ${String.fromCharCode(65 + index)}. ${option}
               </button>
             `;
@@ -684,7 +825,7 @@ function practiceTab(seriesId = "free") {
 
       <div class="panel">
         <h3>Practice Stats</h3>
-        ${practiceStats(seriesId)}
+        ${practiceStats(seriesId || "free")}
       </div>
     </div>
   `;
@@ -694,7 +835,7 @@ function practiceStats(seriesId) {
   const stats = getQuestionStats(seriesId);
 
   return `
-    <div class="grid stats" style="grid-template-columns: repeat(2, 1fr);">
+    <div class="grid stats" style="grid-template-columns:repeat(2,1fr);">
       ${statCard("Solved", stats.solved)}
       ${statCard("Correct", stats.correct)}
       ${statCard("Incorrect", stats.incorrect)}
@@ -706,9 +847,9 @@ function practiceStats(seriesId) {
 }
 
 function testsTab(seriesId) {
-  const testMaterials = getSeriesMaterials(seriesId).filter((m) =>
-    m.type.toLowerCase().includes("test")
-  );
+  const testMaterials = getSeriesMaterials(seriesId).filter(function (material) {
+    return String(material.type).toLowerCase().includes("test");
+  });
 
   return `
     <div class="panel">
@@ -718,25 +859,26 @@ function testsTab(seriesId) {
         ${
           testMaterials.length
             ? testMaterials
-                .map(
-                  (m) => `
-                <div class="item">
-                  <h4>${m.title}</h4>
-                  <div class="muted">${m.subject} • ${m.chapter} • ${m.update}</div>
-                  <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
-                    <button class="btn" onclick="openMaterial(${m.id})">Open Test PDF</button>
-                    <button class="btn secondary" onclick="toggleMaterialComplete(${m.id})">
-                      ${state.completedMaterials[m.id] ? "Completed" : "Mark Completed"}
-                    </button>
-                  </div>
-                </div>
-              `
-                )
+                .map(function (material) {
+                  return `
+                    <div class="item">
+                      <h4>${material.title}</h4>
+                      <div class="muted">${material.subject} • ${material.chapter}</div>
+
+                      <div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
+                        <button class="btn" onclick="openMaterial('${material.id}')">Open Test PDF</button>
+                        <button class="btn secondary" onclick="toggleMaterialComplete('${material.id}')">
+                          ${state.completedMaterials[String(material.id)] ? "Completed" : "Mark Completed"}
+                        </button>
+                      </div>
+                    </div>
+                  `;
+                })
                 .join("")
             : `
               <div class="item">
                 <h4>No test PDF added yet</h4>
-                <div class="muted">Upload test PDFs in data.js by adding material type as Test PDF.</div>
+                <div class="muted">Upload test PDFs from Supabase later.</div>
               </div>
             `
         }
@@ -745,31 +887,35 @@ function testsTab(seriesId) {
   `;
 }
 
-function mistakesPage(embedded = false, seriesId = null) {
-  let wrongAttempts = getAttemptsArray().filter((attempt) => attempt.status === "incorrect");
+function mistakesPage(embedded, seriesId) {
+  let wrongAttempts = getAttemptsArray().filter(function (attempt) {
+    return attempt.status === "incorrect";
+  });
 
   if (seriesId) {
-    wrongAttempts = wrongAttempts.filter((attempt) => attempt.seriesId === seriesId);
+    wrongAttempts = wrongAttempts.filter(function (attempt) {
+      return attempt.seriesId === seriesId;
+    });
   }
 
   const content = `
     <div class="panel">
-      <h3> Mistake Book</h3>
+      <h3>Mistake Book</h3>
 
       <div class="list">
         ${
           wrongAttempts.length
             ? wrongAttempts
-                .map((attempt) => {
-                  const question = QUESTIONS.find((q) => q.id === attempt.questionId);
+                .map(function (attempt) {
+                  const question = getLocalQuestions().find(function (q) {
+                    return q.id === attempt.questionId;
+                  });
 
                   return `
                     <div class="item">
                       <h4>${question ? question.question : "Question"}</h4>
                       <div class="muted">${attempt.subject} • ${attempt.chapter}</div>
-                      <p><strong>Correct concept:</strong> ${
-                        question ? question.solution : ""
-                      }</p>
+                      <p><strong>Correct concept:</strong> ${question ? question.solution : ""}</p>
                     </div>
                   `;
                 })
@@ -783,7 +929,7 @@ function mistakesPage(embedded = false, seriesId = null) {
   return embedded ? content : layout(content);
 }
 
-function analyticsPage(embedded = false, seriesId = null) {
+function analyticsPage(embedded, seriesId) {
   const subjects = ["Physics", "Chemistry", "Maths"];
 
   const content = `
@@ -802,17 +948,33 @@ function analyticsPage(embedded = false, seriesId = null) {
           </tr>
 
           ${subjects
-            .map((subject) => {
-              let attempts = getAttemptsArray().filter((a) => a.subject === subject);
+            .map(function (subject) {
+              let attempts = getAttemptsArray().filter(function (attempt) {
+                return attempt.subject === subject;
+              });
 
               if (seriesId) {
-                attempts = attempts.filter((a) => a.seriesId === seriesId);
+                attempts = attempts.filter(function (attempt) {
+                  return attempt.seriesId === seriesId;
+                });
               }
 
-              const solved = attempts.filter((a) => a.status !== "skipped").length;
-              const correct = attempts.filter((a) => a.status === "correct").length;
-              const incorrect = attempts.filter((a) => a.status === "incorrect").length;
-              const skipped = attempts.filter((a) => a.status === "skipped").length;
+              const solved = attempts.filter(function (attempt) {
+                return attempt.status !== "skipped";
+              }).length;
+
+              const correct = attempts.filter(function (attempt) {
+                return attempt.status === "correct";
+              }).length;
+
+              const incorrect = attempts.filter(function (attempt) {
+                return attempt.status === "incorrect";
+              }).length;
+
+              const skipped = attempts.filter(function (attempt) {
+                return attempt.status === "skipped";
+              }).length;
+
               const accuracy = solved ? Math.round((correct / solved) * 1000) / 10 : 0;
 
               return `
@@ -840,36 +1002,42 @@ function analyticsPage(embedded = false, seriesId = null) {
   return embedded ? content : layout(content);
 }
 
-function weakAreaDetector(seriesId = null) {
-  let wrongAttempts = getAttemptsArray().filter((attempt) => attempt.status === "incorrect");
+function weakAreaDetector(seriesId) {
+  let wrongAttempts = getAttemptsArray().filter(function (attempt) {
+    return attempt.status === "incorrect";
+  });
 
   if (seriesId) {
-    wrongAttempts = wrongAttempts.filter((attempt) => attempt.seriesId === seriesId);
+    wrongAttempts = wrongAttempts.filter(function (attempt) {
+      return attempt.seriesId === seriesId;
+    });
   }
 
   const chapterMap = {};
 
-  wrongAttempts.forEach((attempt) => {
+  wrongAttempts.forEach(function (attempt) {
     chapterMap[attempt.chapter] = (chapterMap[attempt.chapter] || 0) + 1;
   });
 
-  const weakChapters = Object.entries(chapterMap).sort((a, b) => b[1] - a[1]);
+  const weakChapters = Object.entries(chapterMap).sort(function (a, b) {
+    return b[1] - a[1];
+  });
 
-  if (weakChapters.length === 0) {
+  if (!weakChapters.length) {
     return `<p class="muted">No weak areas detected yet.</p>`;
   }
 
   return `
     <div class="list">
       ${weakChapters
-        .map(
-          ([chapter, count]) => `
+        .map(function (entry) {
+          return `
             <div class="item">
-              <strong>${chapter}</strong>
-              <div class="muted">${count} repeated mistake(s)</div>
+              <strong>${entry[0]}</strong>
+              <div class="muted">${entry[1]} repeated mistake(s)</div>
             </div>
-          `
-        )
+          `;
+        })
         .join("")}
     </div>
   `;
@@ -886,15 +1054,15 @@ function updatesTab(seriesId) {
         ${
           materials.length
             ? materials
-                .map(
-                  (m) => `
-                <div class="item">
-                  <h4>${m.update}: ${m.title}</h4>
-                  <div class="muted">${m.type} • ${m.subject} • ${m.chapter}</div>
-                  <p>${m.description || ""}</p>
-                </div>
-              `
-                )
+                .map(function (material) {
+                  return `
+                    <div class="item">
+                      <h4>${material.title}</h4>
+                      <div class="muted">${material.type} • ${material.subject} • ${material.chapter}</div>
+                      <p>${material.description || ""}</p>
+                    </div>
+                  `;
+                })
                 .join("")
             : `<p class="muted">Weekly updates will appear here.</p>`
         }
@@ -904,6 +1072,11 @@ function updatesTab(seriesId) {
 }
 
 function globalUpdatesPage() {
+  const announcements =
+    typeof ANNOUNCEMENTS !== "undefined" && Array.isArray(ANNOUNCEMENTS)
+      ? ANNOUNCEMENTS
+      : [];
+
   return layout(`
     <div class="section-title">
       <div>
@@ -915,18 +1088,21 @@ function globalUpdatesPage() {
     <div class="grid two-column">
       <div class="panel">
         <h3>Announcements</h3>
+
         <div class="list">
           ${
-            typeof ANNOUNCEMENTS !== "undefined" && ANNOUNCEMENTS.length
-              ? ANNOUNCEMENTS.map(
-                  (a) => `
-                  <div class="item">
-                    <h4>${a.title}</h4>
-                    <div class="muted">${a.date}</div>
-                    <p>${a.message}</p>
-                  </div>
-                `
-                ).join("")
+            announcements.length
+              ? announcements
+                  .map(function (announcement) {
+                    return `
+                      <div class="item">
+                        <h4>${announcement.title}</h4>
+                        <div class="muted">${announcement.date}</div>
+                        <p>${announcement.message}</p>
+                      </div>
+                    `;
+                  })
+                  .join("")
               : `<p class="muted">No announcements yet.</p>`
           }
         </div>
@@ -934,16 +1110,18 @@ function globalUpdatesPage() {
 
       <div class="panel">
         <h3>Recent PDFs</h3>
+
         <div class="list">
-          ${MATERIALS.slice(0, 10)
-            .map(
-              (m) => `
-              <div class="item">
-                <h4>${m.title}</h4>
-                <div class="muted">${m.subject} • ${m.type} • ${m.update}</div>
-              </div>
-            `
-            )
+          ${getAllMaterials()
+            .slice(0, 10)
+            .map(function (material) {
+              return `
+                <div class="item">
+                  <h4>${material.title}</h4>
+                  <div class="muted">${material.subject} • ${material.type}</div>
+                </div>
+              `;
+            })
             .join("")}
         </div>
       </div>
@@ -957,119 +1135,515 @@ function premiumPage() {
       <div>
         <h2>Premium PDF Series</h2>
         <p class="muted">
-          Unlock paid series manually through UPI. Access is saved in this browser for V1.
+          Request access first. Payment details are shared privately on Telegram.
         </p>
       </div>
     </div>
 
     <div class="grid cards">
-      ${SERIES.filter((series) => !series.free).map(seriesCard).join("")}
+      ${getAllSeries()
+        .filter(function (series) {
+          return !series.free;
+        })
+        .map(seriesCard)
+        .join("")}
     </div>
   `);
 }
 
-function paymentPage(seriesId) {
+function requestAccessPage(seriesId) {
   const series = getSeries(seriesId);
+  const config = getConfig();
 
   state.paymentSeries = seriesId;
-  state.view = "payment";
+  state.view = "request-access";
   save();
 
-  const telegramLink = "https://t.me/" + APP_CONFIG.telegramUsername.replace("@", "");
+  if (!currentUser) {
+    document.getElementById("app").innerHTML = layout(`
+      <div class="panel">
+        <h2>Login Required</h2>
+        <p class="muted">Create a free account first to get your unique User ID.</p>
+        <button class="btn" onclick="setView('auth')">Login / Signup</button>
+      </div>
+    `);
+    return;
+  }
+
+  const telegramLink = "https://t.me/" + String(config.telegramUsername || "").replace("@", "");
 
   document.getElementById("app").innerHTML = layout(`
     <div class="panel">
-      <h2>Unlock ${series.title}</h2>
+      <h2>Request Access: ${series.title}</h2>
 
       <p class="muted">
-        Complete the payment and send screenshot on Telegram. Access will be given manually.
+        Payment details are not shown publicly. DM admin on Telegram with your User ID and series name.
       </p>
 
       <div class="payment-box">
-        <h3>Pay ₹${series.price} via UPI</h3>
+        <h3>Access Request</h3>
 
-        <p><strong>UPI ID:</strong> ${APP_CONFIG.upiId}</p>
+        <p><strong>Series:</strong> ${series.title}</p>
+        <p><strong>Price:</strong> ₹${series.price}</p>
+        <p><strong>Your User ID:</strong></p>
+        <p style="word-break:break-all;">${currentUser.id}</p>
 
-        <p>
-          After payment, send your screenshot and series name to:
-          <strong>${APP_CONFIG.telegramUsername}</strong>
+        <div style="display:flex; gap:8px; flex-wrap:wrap;">
+          <button class="btn secondary" onclick="copyUserId()">Copy User ID</button>
+          <button class="btn warning" onclick="createAccessRequest('${series.id}')">Create Request</button>
+        </div>
+
+        <p class="muted" style="margin-top:14px;">
+          After creating request, DM ${config.telegramUsername} on Telegram.
         </p>
 
         <a href="${telegramLink}" target="_blank">
-          <button class="btn success">
-            Send Screenshot on Telegram
-          </button>
+          <button class="btn success">Open Telegram DM</button>
         </a>
       </div>
-
-      <p class="footer-note">
-        Your access/resources will be sent manually after verification.
-      </p>
     </div>
   `);
 }
-function adminPage() {
+
+async function createAccessRequest(seriesId) {
+  if (!window.RANKGRID_SUPABASE) {
+    alert("Supabase is not connected. Check supabase-config.js.");
+    return;
+  }
+
+  if (!currentUser) {
+    alert("Login first.");
+    setView("auth");
+    return;
+  }
+
+  const existing = remoteRequests.find(function (request) {
+    return (
+      request.series_id === seriesId &&
+      request.user_id === currentUser.id &&
+      request.status !== "rejected"
+    );
+  });
+
+  if (existing) {
+    alert("Request already exists. DM admin on Telegram with your User ID.");
+    return;
+  }
+
+  const insertData = {
+    user_id: currentUser.id,
+    series_id: seriesId,
+    status: "pending",
+    telegram_username: currentProfile ? currentProfile.telegram_username : "",
+    user_note: "Requested from website"
+  };
+
+  const result = await window.RANKGRID_SUPABASE
+    .from("purchase_requests")
+    .insert(insertData);
+
+  if (result.error) {
+    alert(result.error.message);
+    return;
+  }
+
+  await loadRemoteData();
+
+  alert("Request created. Now DM admin on Telegram with your User ID.");
+  render();
+}
+
+function authPage() {
   return layout(`
     <div class="section-title">
       <div>
-        <h2>Admin Panel V1</h2>
+        <h2>Login / Signup</h2>
         <p class="muted">
-          This is a demo admin panel. In V1, add PDFs by editing data.js from GitHub.
+          Create a free account to get your unique User ID and request access to premium series.
         </p>
       </div>
     </div>
 
     <div class="grid two-column">
       <div class="panel">
-        <h3>How to Add a PDF</h3>
+        <h3>Create Account</h3>
 
-        <p class="muted">Open data.js and add a new object inside MATERIALS.</p>
+        <input class="field" id="signupEmail" type="email" placeholder="Email address">
+        <input class="field" id="signupPassword" type="password" placeholder="Password">
+        <input class="field" id="signupName" type="text" placeholder="Your name">
+        <input class="field" id="signupTelegram" type="text" placeholder="Telegram username, example: @yourname">
 
-        <div class="item">
-          <pre style="white-space:pre-wrap; color:#cfe0f2;">
-{
-  id: 999,
-  seriesId: "physics-dpp",
-  title: "Kinematics DPP Set 2",
-  type: "DPP PDF",
-  subject: "Physics",
-  chapter: "Kinematics",
-  update: "New",
-  fileUrl: "YOUR_PDF_LINK",
-  description: "Practice PDF for Kinematics."
-}
-          </pre>
-        </div>
+        <button class="btn" onclick="signupUser()">Create Free Account</button>
+
+        <p class="muted" style="margin-top:12px;">
+          Your unique User ID will be generated automatically.
+        </p>
       </div>
 
       <div class="panel">
-        <h3>Current App Data</h3>
+        <h3>Login</h3>
 
-        <div class="grid stats" style="grid-template-columns: repeat(2, 1fr);">
-          ${statCard("Series", SERIES.length)}
-          ${statCard("PDFs", MATERIALS.length)}
-          ${statCard("Questions", QUESTIONS.length)}
-          ${statCard("Unlocked", state.unlockedSeries.length)}
-        </div>
+        <input class="field" id="loginEmail" type="email" placeholder="Email address">
+        <input class="field" id="loginPassword" type="password" placeholder="Password">
+
+        <button class="btn success" onclick="loginUser()">Login</button>
+      </div>
+    </div>
+  `);
+}
+
+function profilePage() {
+  if (!currentUser) return authPage();
+
+  const myRequests = remoteRequests.filter(function (request) {
+    return request.user_id === currentUser.id;
+  });
+
+  return layout(`
+    <div class="section-title">
+      <div>
+        <h2>My Profile</h2>
+        <p class="muted">Your account details and unique User ID.</p>
+      </div>
+      <button class="btn danger" onclick="logoutUser()">Logout</button>
+    </div>
+
+    <div class="grid two-column">
+      <div class="panel">
+        <h3>Account Details</h3>
+
+        <table class="table">
+          <tr><th>Field</th><th>Value</th></tr>
+          <tr><td>Email</td><td>${currentUser.email}</td></tr>
+          <tr><td>User ID</td><td style="word-break:break-all;">${currentUser.id}</td></tr>
+          <tr><td>Name</td><td>${currentProfile && currentProfile.full_name ? currentProfile.full_name : "Not added"}</td></tr>
+          <tr><td>Telegram</td><td>${currentProfile && currentProfile.telegram_username ? currentProfile.telegram_username : "Not added"}</td></tr>
+          <tr><td>Admin</td><td>${currentIsAdmin ? "Yes" : "No"}</td></tr>
+        </table>
+
+        <button class="btn secondary" style="margin-top:12px;" onclick="copyUserId()">Copy User ID</button>
+      </div>
+
+      <div class="panel">
+        <h3>My Access Requests</h3>
 
         <div class="list">
-          <div class="item">Add new series in SERIES array</div>
-          <div class="item">Add PDFs in MATERIALS array</div>
-          <div class="item">Add quiz questions in QUESTIONS array</div>
-          <div class="item">Change UPI and Telegram in APP_CONFIG</div>
+          ${
+            myRequests.length
+              ? myRequests
+                  .map(function (request) {
+                    const series = getSeries(request.series_id);
+
+                    return `
+                      <div class="item">
+                        <h4>${series ? series.title : request.series_id}</h4>
+                        <div class="muted">Status: ${request.status}</div>
+                      </div>
+                    `;
+                  })
+                  .join("")
+              : `<p class="muted">No access requests yet.</p>`
+          }
         </div>
       </div>
     </div>
   `);
 }
 
+async function signupUser() {
+  if (!window.RANKGRID_SUPABASE) {
+    alert("Supabase is not connected. Check supabase-config.js.");
+    return;
+  }
+
+  const email = document.getElementById("signupEmail").value.trim();
+  const password = document.getElementById("signupPassword").value.trim();
+  const fullName = document.getElementById("signupName").value.trim();
+  const telegram = document.getElementById("signupTelegram").value.trim();
+
+  if (!email || !password) {
+    alert("Enter email and password.");
+    return;
+  }
+
+  const signupResult = await window.RANKGRID_SUPABASE.auth.signUp({
+    email: email,
+    password: password
+  });
+
+  if (signupResult.error) {
+    alert(signupResult.error.message);
+    return;
+  }
+
+  currentUser = signupResult.data.user;
+
+  if (currentUser) {
+    await window.RANKGRID_SUPABASE.from("profiles").upsert({
+      id: currentUser.id,
+      email: currentUser.email,
+      full_name: fullName,
+      telegram_username: telegram
+    });
+  }
+
+  await loadCurrentUser();
+  await loadRemoteData();
+
+  alert("Account created. Your User ID is ready.");
+  setView("profile");
+}
+
+async function loginUser() {
+  if (!window.RANKGRID_SUPABASE) {
+    alert("Supabase is not connected. Check supabase-config.js.");
+    return;
+  }
+
+  const email = document.getElementById("loginEmail").value.trim();
+  const password = document.getElementById("loginPassword").value.trim();
+
+  if (!email || !password) {
+    alert("Enter email and password.");
+    return;
+  }
+
+  const loginResult = await window.RANKGRID_SUPABASE.auth.signInWithPassword({
+    email: email,
+    password: password
+  });
+
+  if (loginResult.error) {
+    alert(loginResult.error.message);
+    return;
+  }
+
+  await loadCurrentUser();
+  await loadRemoteData();
+
+  alert("Logged in successfully.");
+  setView("profile");
+}
+
+async function logoutUser() {
+  if (window.RANKGRID_SUPABASE) {
+    await window.RANKGRID_SUPABASE.auth.signOut();
+  }
+
+  currentUser = null;
+  currentProfile = null;
+  currentIsAdmin = false;
+  remoteRequests = [];
+
+  state.view = "home";
+  save();
+  render();
+}
+
+async function loadCurrentUser() {
+  currentUser = null;
+  currentProfile = null;
+  currentIsAdmin = false;
+
+  if (!window.RANKGRID_SUPABASE) return;
+
+  const userResult = await window.RANKGRID_SUPABASE.auth.getUser();
+
+  currentUser = userResult.data && userResult.data.user ? userResult.data.user : null;
+
+  if (!currentUser) return;
+
+  const profileResult = await window.RANKGRID_SUPABASE
+    .from("profiles")
+    .select("*")
+    .eq("id", currentUser.id)
+    .maybeSingle();
+
+  currentProfile = profileResult.data || null;
+
+  const adminResult = await window.RANKGRID_SUPABASE
+    .from("admins")
+    .select("*")
+    .eq("user_id", currentUser.id)
+    .maybeSingle();
+
+  currentIsAdmin = !!adminResult.data;
+}
+
+async function loadRemoteData() {
+  if (!window.RANKGRID_SUPABASE) return;
+
+  try {
+    const seriesResult = await window.RANKGRID_SUPABASE
+      .from("series")
+      .select("*")
+      .order("created_at", { ascending: true });
+
+    if (seriesResult.data) {
+      remoteSeries = seriesResult.data;
+    }
+  } catch (error) {
+    console.log("Series load skipped:", error);
+  }
+
+  try {
+    const materialResult = await window.RANKGRID_SUPABASE
+      .from("materials")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (materialResult.data) {
+      remoteMaterials = materialResult.data;
+    }
+  } catch (error) {
+    console.log("Materials load skipped:", error);
+  }
+
+  if (currentUser) {
+    try {
+      const requestResult = await window.RANKGRID_SUPABASE
+        .from("purchase_requests")
+        .select("*")
+        .order("created_at", { ascending: false });
+
+      if (requestResult.data) {
+        remoteRequests = requestResult.data;
+      }
+    } catch (error) {
+      console.log("Requests load skipped:", error);
+    }
+  }
+}
+
+function copyUserId() {
+  if (!currentUser) return;
+
+  navigator.clipboard.writeText(currentUser.id);
+  alert("User ID copied.");
+}
+
+function adminPage() {
+  if (!currentUser) {
+    return authPage();
+  }
+
+  if (!currentIsAdmin) {
+    return layout(`
+      <div class="panel">
+        <h2>Admin Only</h2>
+        <p class="muted">You do not have admin access.</p>
+      </div>
+    `);
+  }
+
+  const pending = remoteRequests.filter(function (request) {
+    return request.status === "pending";
+  });
+
+  return layout(`
+    <div class="section-title">
+      <div>
+        <h2>Admin Approval</h2>
+        <p class="muted">Approve users after Telegram payment verification.</p>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h3>Pending Requests</h3>
+
+      <div class="list">
+        ${
+          pending.length
+            ? pending
+                .map(function (request) {
+                  const series = getSeries(request.series_id);
+
+                  return `
+                    <div class="item">
+                      <h4>${series ? series.title : request.series_id}</h4>
+
+                      <div class="muted">Request ID: ${request.id}</div>
+                      <div class="muted">User ID: ${request.user_id}</div>
+                      <div class="muted">Telegram: ${request.telegram_username || "Not added"}</div>
+                      <div class="muted">Status: ${request.status}</div>
+
+                      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
+                        <button class="btn success" onclick="approveRequest('${request.id}')">Approve</button>
+                        <button class="btn danger" onclick="rejectRequest('${request.id}')">Reject</button>
+                      </div>
+                    </div>
+                  `;
+                })
+                .join("")
+            : `<p class="muted">No pending requests.</p>`
+        }
+      </div>
+    </div>
+  `);
+}
+
+async function approveRequest(requestId) {
+  if (!currentIsAdmin) {
+    alert("Admin only.");
+    return;
+  }
+
+  const result = await window.RANKGRID_SUPABASE
+    .from("purchase_requests")
+    .update({
+      status: "approved",
+      approved_at: new Date().toISOString()
+    })
+    .eq("id", requestId);
+
+  if (result.error) {
+    alert(result.error.message);
+    return;
+  }
+
+  await loadRemoteData();
+  alert("Request approved.");
+  render();
+}
+
+async function rejectRequest(requestId) {
+  if (!currentIsAdmin) {
+    alert("Admin only.");
+    return;
+  }
+
+  const result = await window.RANKGRID_SUPABASE
+    .from("purchase_requests")
+    .update({
+      status: "rejected"
+    })
+    .eq("id", requestId);
+
+  if (result.error) {
+    alert(result.error.message);
+    return;
+  }
+
+  await loadRemoteData();
+  alert("Request rejected.");
+  render();
+}
+
 function bookmarksPage() {
   const savedQuestions = state.bookmarkedQuestions
-    .map((id) => QUESTIONS.find((q) => q.id === id))
+    .map(function (id) {
+      return getLocalQuestions().find(function (q) {
+        return q.id === id;
+      });
+    })
     .filter(Boolean);
 
   const savedMaterials = state.bookmarkedMaterials
-    .map((id) => MATERIALS.find((m) => m.id === id))
+    .map(function (id) {
+      return getAllMaterials().find(function (m) {
+        return String(m.id) === String(id);
+      });
+    })
     .filter(Boolean);
 
   return layout(`
@@ -1088,15 +1662,15 @@ function bookmarksPage() {
           ${
             savedMaterials.length
               ? savedMaterials
-                  .map(
-                    (m) => `
-                    <div class="item">
-                      <h4>${m.title}</h4>
-                      <div class="muted">${m.subject} • ${m.chapter}</div>
-                      <button class="btn secondary" style="margin-top:10px;" onclick="openMaterial(${m.id})">Open</button>
-                    </div>
-                  `
-                  )
+                  .map(function (material) {
+                    return `
+                      <div class="item">
+                        <h4>${material.title}</h4>
+                        <div class="muted">${material.subject} • ${material.chapter}</div>
+                        <button class="btn secondary" style="margin-top:10px;" onclick="openMaterial('${material.id}')">Open</button>
+                      </div>
+                    `;
+                  })
                   .join("")
               : `<p class="muted">No PDF bookmarks yet.</p>`
           }
@@ -1110,15 +1684,15 @@ function bookmarksPage() {
           ${
             savedQuestions.length
               ? savedQuestions
-                  .map(
-                    (q) => `
-                    <div class="item">
-                      <h4>${q.question}</h4>
-                      <div class="muted">${q.subject} • ${q.chapter}</div>
-                      <p>${q.solution}</p>
-                    </div>
-                  `
-                  )
+                  .map(function (question) {
+                    return `
+                      <div class="item">
+                        <h4>${question.question}</h4>
+                        <div class="muted">${question.subject} • ${question.chapter}</div>
+                        <p>${question.solution}</p>
+                      </div>
+                    `;
+                  })
                   .join("")
               : `<p class="muted">No question bookmarks yet.</p>`
           }
@@ -1129,12 +1703,14 @@ function bookmarksPage() {
 }
 
 function answerQuestion(questionId, selectedIndex) {
-  const question = QUESTIONS.find((q) => q.id === questionId);
+  const question = getLocalQuestions().find(function (q) {
+    return q.id === questionId;
+  });
 
   if (!question) return;
 
   state.attempts[questionId] = {
-    questionId,
+    questionId: questionId,
     selected: selectedIndex,
     status: selectedIndex === question.correct ? "correct" : "incorrect",
     seriesId: question.seriesId,
@@ -1148,12 +1724,14 @@ function answerQuestion(questionId, selectedIndex) {
 }
 
 function skipQuestion(questionId) {
-  const question = QUESTIONS.find((q) => q.id === questionId);
+  const question = getLocalQuestions().find(function (q) {
+    return q.id === questionId;
+  });
 
   if (!question) return;
 
   state.attempts[questionId] = {
-    questionId,
+    questionId: questionId,
     selected: null,
     status: "skipped",
     seriesId: question.seriesId,
@@ -1170,57 +1748,71 @@ function bookmarkQuestion(questionId) {
   if (!state.bookmarkedQuestions.includes(questionId)) {
     state.bookmarkedQuestions.push(questionId);
     save();
-    alert("Question bookmarked");
+    alert("Question bookmarked.");
   } else {
-    alert("Question already bookmarked");
+    alert("Question already bookmarked.");
   }
 }
 
 function bookmarkMaterial(materialId) {
-  if (!state.bookmarkedMaterials.includes(materialId)) {
-    state.bookmarkedMaterials.push(materialId);
+  const id = String(materialId);
+
+  if (!state.bookmarkedMaterials.includes(id)) {
+    state.bookmarkedMaterials.push(id);
     save();
-    alert("PDF resource bookmarked");
+    alert("PDF resource bookmarked.");
   } else {
-    alert("PDF already bookmarked");
+    alert("PDF already bookmarked.");
   }
 }
 
 function toggleMaterialComplete(materialId) {
-  if (state.completedMaterials[materialId]) {
-    delete state.completedMaterials[materialId];
+  const id = String(materialId);
+
+  if (state.completedMaterials[id]) {
+    delete state.completedMaterials[id];
   } else {
-    state.completedMaterials[materialId] = true;
+    state.completedMaterials[id] = true;
   }
 
   save();
   render();
 }
 
-function openMaterial(materialId) {
-  const material = MATERIALS.find((m) => m.id === materialId);
+async function openMaterial(materialId) {
+  const material = getAllMaterials().find(function (m) {
+    return String(m.id) === String(materialId);
+  });
 
   if (!material) return;
 
-  if (!material.fileUrl) {
-    alert("PDF link not added yet. Add fileUrl in data.js for this material.");
+  const series = getSeries(material.seriesId);
+
+  if (!series.free && !isApprovedForSeries(material.seriesId)) {
+    alert("This PDF is locked. Request access first.");
     return;
   }
 
-  window.open(material.fileUrl, "_blank");
-}
+  if (material.storagePath && window.RANKGRID_SUPABASE) {
+    const result = await window.RANKGRID_SUPABASE.storage
+      .from("pdfs")
+      .createSignedUrl(material.storagePath, 300);
 
-function demoUnlock(seriesId) {
-  if (!state.unlockedSeries.includes(seriesId)) {
-    state.unlockedSeries.push(seriesId);
+    if (result.error) {
+      alert(result.error.message);
+      return;
+    }
+
+    window.open(result.data.signedUrl, "_blank");
+    return;
   }
 
-  state.activeSeries = seriesId;
-  state.activeTab = "overview";
-  state.view = "series-detail";
+  if (material.fileUrl) {
+    window.open(material.fileUrl, "_blank");
+    return;
+  }
 
-  save();
-  render();
+  alert("PDF link/storage path not added yet.");
 }
 
 function toggleMenu() {
@@ -1232,314 +1824,123 @@ function toggleMenu() {
 }
 
 function searchCards(value) {
-  const searchValue = value.toLowerCase();
+  const searchValue = String(value || "").toLowerCase();
   const cards = document.querySelectorAll(".searchable");
 
-  cards.forEach((card) => {
+  cards.forEach(function (card) {
     const text = card.getAttribute("data-search") || "";
     card.style.display = text.includes(searchValue) ? "block" : "none";
   });
 }
 
 function capitalize(text) {
-  return text.charAt(0).toUpperCase() + text.slice(1);
-}
-function authPage() {
-  return layout(`
-    <div class="section-title">
-      <div>
-        <h2>Login / Signup</h2>
-        <p class="muted">
-          Create a free account to get your unique User ID and request access to paid series.
-        </p>
-      </div>
-    </div>
-
-    <div class="grid two-column">
-      <div class="panel">
-        <h3>Create Account</h3>
-
-        <input class="field" id="signupEmail" type="email" placeholder="Email address">
-        <input class="field" id="signupPassword" type="password" placeholder="Password">
-        <input class="field" id="signupName" type="text" placeholder="Your name">
-        <input class="field" id="signupTelegram" type="text" placeholder="Telegram username, example: @yourname">
-
-        <button class="btn" onclick="signupUser()">Create Free Account</button>
-
-        <p class="muted" style="margin-top:12px;">
-          After signup, your unique User ID will be generated automatically.
-        </p>
-      </div>
-
-      <div class="panel">
-        <h3>Login</h3>
-
-        <input class="field" id="loginEmail" type="email" placeholder="Email address">
-        <input class="field" id="loginPassword" type="password" placeholder="Password">
-
-        <button class="btn success" onclick="loginUser()">Login</button>
-
-        <p class="muted" style="margin-top:12px;">
-          Login to check your access requests and unlocked resources.
-        </p>
-      </div>
-    </div>
-  `);
+  return String(text).charAt(0).toUpperCase() + String(text).slice(1);
 }
 
-function profilePage() {
-  if (!currentUser) {
-    return authPage();
-  }
-
-  return layout(`
-    <div class="section-title">
-      <div>
-        <h2>My Profile</h2>
-        <p class="muted">Your account details and unique User ID.</p>
-      </div>
-      <button class="btn danger" onclick="logoutUser()">Logout</button>
-    </div>
-
-    <div class="grid two-column">
-      <div class="panel">
-        <h3>Account Details</h3>
-
-        <table class="table">
-          <tr>
-            <th>Field</th>
-            <th>Value</th>
-          </tr>
-          <tr>
-            <td>Email</td>
-            <td>${currentUser.email}</td>
-          </tr>
-          <tr>
-            <td>User ID</td>
-            <td style="word-break:break-all;">${currentUser.id}</td>
-          </tr>
-          <tr>
-            <td>Name</td>
-            <td>${currentProfile?.full_name || "Not added"}</td>
-          </tr>
-          <tr>
-            <td>Telegram</td>
-            <td>${currentProfile?.telegram_username || "Not added"}</td>
-          </tr>
-        </table>
-
-        <button class="btn secondary" style="margin-top:12px;" onclick="copyUserId()">
-          Copy User ID
-        </button>
-      </div>
-
-      <div class="panel">
-        <h3>How Paid Access Works</h3>
-
-        <div class="list">
-          <div class="item">
-            1. Open any paid series.
-          </div>
-          <div class="item">
-            2. Click Request Access.
-          </div>
-          <div class="item">
-            3. Send your User ID on Telegram.
-          </div>
-          <div class="item">
-            4. Admin approves your access after payment verification.
-          </div>
-        </div>
-      </div>
-    </div>
-  `);
-}
-
-async function signupUser() {
-  const email = document.getElementById("signupEmail").value.trim();
-  const password = document.getElementById("signupPassword").value.trim();
-  const fullName = document.getElementById("signupName").value.trim();
-  const telegram = document.getElementById("signupTelegram").value.trim();
-
-  if (!email || !password) {
-    alert("Enter email and password");
-    return;
-  }
-
-  const { data, error } = await supabase.auth.signUp({
-    email,
-    password
-  });
-
-  if (error) {
-    alert(error.message);
-    return;
-  }
-
-  currentUser = data.user;
-
-  if (currentUser) {
-    await supabase.from("profiles").insert({
-      id: currentUser.id,
-      email: currentUser.email,
-      full_name: fullName,
-      telegram_username: telegram
-    });
-  }
-
-  await loadCurrentUser();
-
-  alert("Account created. Your unique User ID is ready.");
-  setView("profile");
-}
-
-async function loginUser() {
-  const email = document.getElementById("loginEmail").value.trim();
-  const password = document.getElementById("loginPassword").value.trim();
-
-  if (!email || !password) {
-    alert("Enter email and password");
-    return;
-  }
-
-  const { error } = await supabase.auth.signInWithPassword({
-    email,
-    password
-  });
-
-  if (error) {
-    alert(error.message);
-    return;
-  }
-
-  await loadCurrentUser();
-
-  alert("Logged in successfully");
-  setView("profile");
-}
-
-async function logoutUser() {
-  await supabase.auth.signOut();
-
-  currentUser = null;
-  currentProfile = null;
-  currentIsAdmin = false;
-
-  state.view = "home";
-  save();
-  render();
-}
-
-async function loadCurrentUser() {
-  const { data } = await supabase.auth.getUser();
-
-  currentUser = data.user || null;
-  currentProfile = null;
-  currentIsAdmin = false;
-
-  if (!currentUser) return;
-
-  const { data: profile } = await supabase
-    .from("profiles")
-    .select("*")
-    .eq("id", currentUser.id)
-    .single();
-
-  currentProfile = profile || null;
-
-  const { data: adminData } = await supabase
-    .from("admins")
-    .select("*")
-    .eq("user_id", currentUser.id)
-    .maybeSingle();
-
-  currentIsAdmin = !!adminData;
-}
-
-function copyUserId() {
-  if (!currentUser) return;
-
-  navigator.clipboard.writeText(currentUser.id);
-  alert("User ID copied");
-}
 function render() {
   const app = document.getElementById("app");
 
   if (!app) return;
-if (state.view === "auth") {
-  app.innerHTML = authPage();
-  return;
-}
 
-if (state.view === "profile") {
-  app.innerHTML = profilePage();
-  return;
-}
-  if (state.view === "home") {
-    app.innerHTML = homePage();
-    return;
-  }
+  try {
+    if (state.view === "auth") {
+      app.innerHTML = authPage();
+      return;
+    }
 
-  if (state.view === "free") {
-    app.innerHTML = freeDashboardPage();
-    return;
-  }
+    if (state.view === "profile") {
+      app.innerHTML = profilePage();
+      return;
+    }
 
-  if (state.view === "series") {
-    app.innerHTML = allSeriesPage();
-    return;
-  }
+    if (state.view === "home") {
+      app.innerHTML = homePage();
+      return;
+    }
 
-  if (state.view === "series-detail") {
-    app.innerHTML = seriesDetailPage();
-    return;
-  }
+    if (state.view === "free") {
+      app.innerHTML = freeDashboardPage();
+      return;
+    }
 
-  if (state.view === "practice") {
-    app.innerHTML = layout(`
-      <div class="section-title">
-        <div>
-          <h2>Practice Zone</h2>
-          <p class="muted">Free practice questions with tracking.</p>
+    if (state.view === "series") {
+      app.innerHTML = allSeriesPage();
+      return;
+    }
+
+    if (state.view === "series-detail") {
+      app.innerHTML = seriesDetailPage(false);
+      return;
+    }
+
+    if (state.view === "practice") {
+      app.innerHTML = layout(`
+        <div class="section-title">
+          <div>
+            <h2>Practice Zone</h2>
+            <p class="muted">Free practice questions with tracking.</p>
+          </div>
         </div>
+
+        ${practiceTab("free")}
+      `);
+      return;
+    }
+
+    if (state.view === "mistakes") {
+      app.innerHTML = mistakesPage(false, null);
+      return;
+    }
+
+    if (state.view === "analytics") {
+      app.innerHTML = analyticsPage(false, null);
+      return;
+    }
+
+    if (state.view === "premium") {
+      app.innerHTML = premiumPage();
+      return;
+    }
+
+    if (state.view === "admin") {
+      app.innerHTML = adminPage();
+      return;
+    }
+
+    if (state.view === "bookmarks") {
+      app.innerHTML = bookmarksPage();
+      return;
+    }
+
+    if (state.view === "updates") {
+      app.innerHTML = globalUpdatesPage();
+      return;
+    }
+
+    app.innerHTML = homePage();
+  } catch (error) {
+    console.error("Render error:", error);
+
+    app.innerHTML = `
+      <div style="padding:20px; color:white; background:#07111f; min-height:100vh; font-family:Arial;">
+        <h2>RankGrid JEE loading error</h2>
+        <p>There is a JavaScript error. Check app.js, data.js, or supabase-config.js.</p>
+        <pre style="white-space:pre-wrap; background:#111; padding:12px; border-radius:12px;">${error.message}</pre>
       </div>
-
-      ${practiceTab("free")}
-    `);
-    return;
+    `;
   }
-
-  if (state.view === "mistakes") {
-    app.innerHTML = mistakesPage();
-    return;
-  }
-
-  if (state.view === "analytics") {
-    app.innerHTML = analyticsPage();
-    return;
-  }
-
-  if (state.view === "premium") {
-    app.innerHTML = premiumPage();
-    return;
-  }
-
-  
-  if (state.view === "bookmarks") {
-    app.innerHTML = bookmarksPage();
-    return;
-  }
-
-  if (state.view === "updates") {
-    app.innerHTML = globalUpdatesPage();
-    return;
-  }
-
-  app.innerHTML = homePage();
 }
 
 async function initApp() {
-  await loadCurrentUser();
+  try {
+    if (window.RANKGRID_SUPABASE) {
+      await loadCurrentUser();
+      await loadRemoteData();
+    }
+  } catch (error) {
+    console.log("Startup skipped:", error);
+  }
+
   render();
 }
 
