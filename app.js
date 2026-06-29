@@ -6,48 +6,43 @@ const SERIES = [
     type: "Free Material",
     price: 0,
     free: true,
-    description:
-      "Free dashboard with daily practice, sample notes, weekly tests, planner and basic tracking."
+    description: "Free PDFs, practice questions, mini tests, planner and basic progress tracking."
   },
   {
     id: "physics-notes",
     title: "Physics Concise Notes Series",
     subject: "Physics",
-    type: "Concise Notes",
+    type: "PDF Notes",
     price: 49,
     free: false,
-    description:
-      "Physics concise notes, formulas, mistakes and revision sheets for all chapters."
+    description: "Physics concise notes PDFs, formulas, mind maps and revision sheets."
   },
   {
     id: "physics-pyq",
     title: "Physics PYQ Practice Series",
     subject: "Physics",
-    type: "PYQ Practice",
+    type: "PYQ PDFs",
     price: 79,
     free: false,
-    description:
-      "PYQ-style Physics practice with accuracy tracking, mistakes and analytics."
+    description: "Physics PYQ-style practice PDFs with solutions and progress tracking."
   },
   {
     id: "chemistry-dpp",
     title: "Chemistry DPP Practice Series",
     subject: "Chemistry",
-    type: "DPP Practice",
+    type: "DPP PDFs",
     price: 59,
     free: false,
-    description:
-      "Original DPP-style Chemistry practice for Physical, Inorganic and Organic Chemistry."
+    description: "Chemistry DPP PDFs for Physical, Inorganic and Organic Chemistry."
   },
   {
     id: "maths-test",
     title: "Maths Test Series",
     subject: "Maths",
-    type: "Test Series",
+    type: "Test PDFs",
     price: 99,
     free: false,
-    description:
-      "Maths weekly tests with score tracking, skipped questions and accuracy dashboard."
+    description: "Weekly Maths test PDFs with solutions and performance tracking."
   },
   {
     id: "tracker-pro",
@@ -56,8 +51,7 @@ const SERIES = [
     type: "Tracker Pack",
     price: 29,
     free: false,
-    description:
-      "DPP tracker, mistake book, backlog tracker, formula revision and test analysis templates."
+    description: "DPP tracker, mistake book, backlog tracker and test analysis PDFs."
   }
 ];
 
@@ -69,7 +63,8 @@ const MATERIALS = [
     type: "PDF",
     subject: "All",
     chapter: "Strategy",
-    update: "Available"
+    update: "Available",
+    fileUrl: ""
   },
   {
     id: 2,
@@ -78,61 +73,58 @@ const MATERIALS = [
     type: "PDF",
     subject: "Physics",
     chapter: "Basic Maths",
-    update: "Available"
+    update: "Available",
+    fileUrl: ""
   },
   {
     id: 3,
     seriesId: "free",
     title: "Weekly Mini Test 01",
-    type: "Test",
+    type: "PDF Test",
     subject: "All",
     chapter: "Mixed",
-    update: "Available"
+    update: "Available",
+    fileUrl: ""
   },
   {
     id: 4,
     seriesId: "physics-notes",
     title: "Basic Maths Concise Notes",
-    type: "Notes PDF",
+    type: "PDF Notes",
     subject: "Physics",
     chapter: "Basic Maths",
-    update: "Weekly"
+    update: "Weekly",
+    fileUrl: ""
   },
   {
     id: 5,
-    seriesId: "physics-notes",
-    title: "Units and Dimensions Short Notes",
-    type: "Notes PDF",
+    seriesId: "physics-pyq",
+    title: "Kinematics PYQ Practice Set 1",
+    type: "PDF Practice",
     subject: "Physics",
-    chapter: "Units",
-    update: "Coming Soon"
+    chapter: "Kinematics",
+    update: "Weekly",
+    fileUrl: ""
   },
   {
     id: 6,
-    seriesId: "physics-pyq",
-    title: "Kinematics PYQ Practice Set 1",
-    type: "Practice",
-    subject: "Physics",
-    chapter: "Kinematics",
-    update: "Weekly"
+    seriesId: "chemistry-dpp",
+    title: "Mole Concept DPP Set 1",
+    type: "PDF Practice",
+    subject: "Chemistry",
+    chapter: "Mole Concept",
+    update: "Weekly",
+    fileUrl: ""
   },
   {
     id: 7,
-    seriesId: "chemistry-dpp",
-    title: "Mole Concept DPP Set 1",
-    type: "Practice",
-    subject: "Chemistry",
-    chapter: "Mole Concept",
-    update: "Weekly"
-  },
-  {
-    id: 8,
     seriesId: "maths-test",
     title: "Quadratic Equations Test 1",
-    type: "Test",
+    type: "PDF Test",
     subject: "Maths",
     chapter: "Quadratic Equations",
-    update: "Sunday"
+    update: "Sunday",
+    fileUrl: ""
   }
 ];
 
@@ -152,12 +144,12 @@ const QUESTIONS = [
     id: "q2",
     seriesId: "free",
     subject: "Physics",
-    chapter: "Basic Maths",
+    chapter: "Graphs",
     difficulty: "Easy",
-    question: "The slope of a displacement-time graph represents:",
+    question: "The slope of displacement-time graph represents:",
     options: ["Acceleration", "Velocity", "Force", "Work"],
     correct: 1,
-    solution: "Slope of x-t graph is dx/dt, which represents velocity."
+    solution: "Slope of x-t graph is dx/dt, which is velocity."
   },
   {
     id: "q3",
@@ -166,15 +158,9 @@ const QUESTIONS = [
     chapter: "Mole Concept",
     difficulty: "Easy",
     question: "1 mole of any substance contains approximately:",
-    options: [
-      "6.022 × 10²³ particles",
-      "9.8 particles",
-      "3 × 10⁸ particles",
-      "1.6 × 10⁻¹⁹ particles"
-    ],
+    options: ["6.022 × 10²³ particles", "9.8 particles", "3 × 10⁸ particles", "1.6 × 10⁻¹⁹ particles"],
     correct: 0,
-    solution:
-      "One mole contains Avogadro number of particles, approximately 6.022 × 10²³."
+    solution: "One mole contains Avogadro number of particles, approximately 6.022 × 10²³."
   },
   {
     id: "q4",
@@ -186,23 +172,10 @@ const QUESTIONS = [
     options: ["b² + 4ac", "b² - 4ac", "a² - 4bc", "c² - 4ab"],
     correct: 1,
     solution: "The discriminant of ax² + bx + c = 0 is D = b² - 4ac."
-  },
-  {
-    id: "q5",
-    seriesId: "free",
-    subject: "Physics",
-    chapter: "Vectors",
-    difficulty: "Medium",
-    question:
-      "If two equal vectors of magnitude A act at 60°, the resultant magnitude is:",
-    options: ["A", "√2 A", "√3 A", "2A"],
-    correct: 2,
-    solution:
-      "R = √(A² + A² + 2A²cos60°) = √(3A²) = √3 A."
   }
 ];
 
-const STORAGE_KEY = "rankgrid_jee_v1";
+const STORAGE_KEY = "rankgrid_jee_working_v1";
 
 let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
   view: "home",
@@ -210,20 +183,16 @@ let state = JSON.parse(localStorage.getItem(STORAGE_KEY)) || {
   activeTab: "overview",
   unlockedSeries: ["free"],
   attempts: {},
-  bookmarks: [],
-  user: {
-    name: "JEE Aspirant",
-    plan: "Free Account"
-  }
+  bookmarks: []
 };
 
-function saveState() {
+function save() {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
 }
 
 function setView(view) {
   state.view = view;
-  saveState();
+  save();
   render();
 }
 
@@ -231,13 +200,13 @@ function setSeries(seriesId) {
   state.activeSeries = seriesId;
   state.activeTab = "overview";
   state.view = "series-detail";
-  saveState();
+  save();
   render();
 }
 
 function setTab(tab) {
   state.activeTab = tab;
-  saveState();
+  save();
   render();
 }
 
@@ -245,56 +214,56 @@ function isUnlocked(seriesId) {
   return state.unlockedSeries.includes(seriesId);
 }
 
-function getAttemptsArray() {
-  return Object.values(state.attempts);
+function getAttempts(filterSeries = null) {
+  let arr = Object.values(state.attempts);
+
+  if (filterSeries) {
+    arr = arr.filter((a) => a.seriesId === filterSeries);
+  }
+
+  return arr;
 }
 
-function getStats(filter = {}) {
-  let attempts = getAttemptsArray();
+function getStats(seriesId = null) {
+  const arr = getAttempts(seriesId);
 
-  if (filter.seriesId) {
-    attempts = attempts.filter((a) => a.seriesId === filter.seriesId);
-  }
-
-  if (filter.subject) {
-    attempts = attempts.filter((a) => a.subject === filter.subject);
-  }
-
-  const total = attempts.length;
-  const solved = attempts.filter((a) => a.status !== "skipped").length;
-  const correct = attempts.filter((a) => a.status === "correct").length;
-  const incorrect = attempts.filter((a) => a.status === "incorrect").length;
-  const skipped = attempts.filter((a) => a.status === "skipped").length;
+  const total = arr.length;
+  const solved = arr.filter((a) => a.status !== "skipped").length;
+  const correct = arr.filter((a) => a.status === "correct").length;
+  const incorrect = arr.filter((a) => a.status === "incorrect").length;
+  const skipped = arr.filter((a) => a.status === "skipped").length;
   const accuracy = solved ? Math.round((correct / solved) * 1000) / 10 : 0;
 
-  return {
-    total,
-    solved,
-    correct,
-    incorrect,
-    skipped,
-    accuracy
-  };
+  return { total, solved, correct, incorrect, skipped, accuracy };
 }
 
 function getCompletion(seriesId) {
-  const questions = QUESTIONS.filter((q) => q.seriesId === seriesId);
+  const qs = QUESTIONS.filter((q) => q.seriesId === seriesId);
 
-  if (questions.length === 0) {
+  if (qs.length === 0) {
     return seriesId === "free" ? 20 : 0;
   }
 
-  const attempted = questions.filter((q) => state.attempts[q.id]).length;
+  const attempted = qs.filter((q) => state.attempts[q.id]).length;
 
-  return Math.round((attempted / questions.length) * 100);
+  return Math.round((attempted / qs.length) * 100);
 }
 
-function statCard(label, value) {
+function stat(label, value) {
   return `
     <div class="stat">
       <div class="stat-number">${value}</div>
       <div class="stat-label">${label}</div>
     </div>
+  `;
+}
+
+function nav(view, label) {
+  return `
+    <button class="nav-btn ${state.view === view ? "active" : ""}" onclick="setView('${view}')">
+      <span class="nav-dot"></span>
+      ${label}
+    </button>
   `;
 }
 
@@ -311,20 +280,19 @@ function layout(content) {
         </div>
 
         <div class="nav-title">Main</div>
-        ${navButton("home", "Dashboard")}
-        ${navButton("free", "Free Dashboard")}
-        ${navButton("series", "All Series")}
-        ${navButton("practice", "Practice Zone")}
-        ${navButton("mistakes", "Mistake Book")}
-        ${navButton("analytics", "Analytics")}
+        ${nav("home", "Dashboard")}
+        ${nav("free", "Free Dashboard")}
+        ${nav("series", "All Series")}
+        ${nav("practice", "Practice Zone")}
+        ${nav("mistakes", "Mistake Book")}
+        ${nav("analytics", "Analytics")}
 
         <div class="nav-title">Business</div>
-        ${navButton("premium", "Premium & UPI")}
-        ${navButton("admin", "Admin Panel")}
+        ${nav("premium", "Premium & UPI")}
+        ${nav("admin", "Admin Panel")}
 
         <div class="footer-note">
-          Version 1 uses browser storage for progress tracking.
-          Version 2 will connect Supabase for login, database, storage and admin approval.
+          V1 works without Supabase. Progress is saved in this browser.
         </div>
       </aside>
 
@@ -339,10 +307,10 @@ function layout(content) {
           />
 
           <div class="profile">
-            <div class="avatar">${state.user.name.charAt(0)}</div>
+            <div class="avatar">J</div>
             <div>
-              <strong>${state.user.name}</strong>
-              <div class="muted" style="font-size: 12px;">${state.user.plan}</div>
+              <strong>JEE Aspirant</strong>
+              <div class="muted" style="font-size: 12px;">Free Account</div>
             </div>
           </div>
         </div>
@@ -353,58 +321,49 @@ function layout(content) {
   `;
 }
 
-function navButton(view, label) {
-  return `
-    <button class="nav-btn ${state.view === view ? "active" : ""}" onclick="setView('${view}')">
-      <span class="nav-dot"></span>
-      ${label}
-    </button>
-  `;
-}
-
 function homePage() {
-  const stats = getStats();
+  const s = getStats();
 
   return layout(`
     <section class="hero">
       <div class="hero-card">
         <span class="badge">JEE 2028 Practice Dashboard</span>
 
-        <h2>Professional dashboard for notes, practice, tests and accuracy tracking.</h2>
+        <h2>Professional dashboard for PDFs, practice, tests and accuracy tracking.</h2>
 
         <p>
-          RankGrid JEE gives free and premium subject-wise series with separate dashboards.
-          Track solved problems, correct, incorrect, skipped, accuracy, mistakes and weekly updates in one place.
+          RankGrid JEE gives free and premium subject-wise PDF series with separate dashboards.
+          Track solved problems, correct, incorrect, skipped, accuracy, mistakes and updates in one place.
         </p>
 
-        <div style="display: flex; gap: 10px; flex-wrap: wrap; margin-top: 20px;">
+        <div style="display:flex; gap:10px; flex-wrap:wrap; margin-top:20px;">
           <button class="btn" onclick="setView('free')">Start Free Dashboard</button>
           <button class="btn secondary" onclick="setView('series')">View Series</button>
         </div>
       </div>
 
       <div class="panel">
-        <div class="kpi-ring" style="--percentage: ${stats.accuracy * 3.6}deg;">
+        <div class="kpi-ring" style="--percentage: ${s.accuracy * 3.6}deg;">
           <div>
-            ${stats.accuracy}%<br />
-            <span class="muted" style="font-size: 12px;">Accuracy</span>
+            ${s.accuracy}%<br>
+            <span class="muted" style="font-size:12px;">Accuracy</span>
           </div>
         </div>
 
         <div class="grid stats" style="grid-template-columns: repeat(2, 1fr);">
-          ${statCard("Solved", stats.solved)}
-          ${statCard("Correct", stats.correct)}
-          ${statCard("Incorrect", stats.incorrect)}
-          ${statCard("Skipped", stats.skipped)}
+          ${stat("Solved", s.solved)}
+          ${stat("Correct", s.correct)}
+          ${stat("Incorrect", s.incorrect)}
+          ${stat("Skipped", s.skipped)}
         </div>
       </div>
     </section>
 
     <div class="grid stats">
-      ${statCard("Series", SERIES.length)}
-      ${statCard("Free Materials", MATERIALS.filter((m) => m.seriesId === "free").length)}
-      ${statCard("Practice Qs", QUESTIONS.length)}
-      ${statCard("Unlocked", state.unlockedSeries.length)}
+      ${stat("Series", SERIES.length)}
+      ${stat("PDF Resources", MATERIALS.length)}
+      ${stat("Practice Qs", QUESTIONS.length)}
+      ${stat("Unlocked", state.unlockedSeries.length)}
     </div>
 
     <div class="section-title">
@@ -430,16 +389,15 @@ function seriesCard(series) {
       <span class="pill">${series.subject}</span>
 
       <h3>${series.title}</h3>
-
       <p>${series.description}</p>
 
       <div class="progress">
-        <div class="progress-bar" style="width: ${completion}%;"></div>
+        <div class="progress-bar" style="width:${completion}%;"></div>
       </div>
 
       <div class="muted">${completion}% completed</div>
 
-      <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 14px;">
+      <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:14px;">
         <button class="btn" onclick="setSeries('${series.id}')">
           ${isUnlocked(series.id) ? "Open Dashboard" : "Preview"}
         </button>
@@ -454,10 +412,10 @@ function seriesCard(series) {
   `;
 }
 
-function freeDashboard() {
+function freePage() {
   state.activeSeries = "free";
   state.activeTab = "overview";
-  saveState();
+  save();
   return seriesDetailPage(true);
 }
 
@@ -465,10 +423,8 @@ function allSeriesPage() {
   return layout(`
     <div class="section-title">
       <div>
-        <h2>All Subject-wise Series</h2>
-        <p class="muted">
-          Each series has its own dashboard, materials, practice, analytics and updates.
-        </p>
+        <h2>All PDF Series</h2>
+        <p class="muted">Each series has its own dashboard, PDF resources, practice, analytics and updates.</p>
       </div>
     </div>
 
@@ -479,20 +435,11 @@ function allSeriesPage() {
 }
 
 function seriesDetailPage(forceFree = false) {
-  const seriesId = forceFree ? "free" : state.activeSeries;
-  const series = SERIES.find((s) => s.id === seriesId) || SERIES[0];
-  const stats = getStats({ seriesId });
-  const locked = !isUnlocked(seriesId);
-
-  const tabs = [
-    "overview",
-    "materials",
-    "practice",
-    "tests",
-    "mistakes",
-    "analytics",
-    "updates"
-  ];
+  const id = forceFree ? "free" : state.activeSeries;
+  const series = SERIES.find((s) => s.id === id) || SERIES[0];
+  const s = getStats(id);
+  const locked = !isUnlocked(id);
+  const tabs = ["overview", "materials", "practice", "tests", "mistakes", "analytics", "updates"];
 
   return layout(`
     <div class="section-title">
@@ -510,28 +457,21 @@ function seriesDetailPage(forceFree = false) {
     </div>
 
     <div class="grid stats">
-      ${statCard("Total Attempts", stats.total)}
-      ${statCard("Correct", stats.correct)}
-      ${statCard("Incorrect", stats.incorrect)}
-      ${statCard("Accuracy", stats.accuracy + "%")}
+      ${stat("Attempts", s.total)}
+      ${stat("Correct", s.correct)}
+      ${stat("Incorrect", s.incorrect)}
+      ${stat("Accuracy", s.accuracy + "%")}
     </div>
 
     <div class="tabs">
-      ${tabs
-        .map(
-          (tab) => `
-            <button 
-              class="tab ${state.activeTab === tab ? "active" : ""}" 
-              onclick="setTab('${tab}')"
-            >
-              ${capitalize(tab)}
-            </button>
-          `
-        )
-        .join("")}
+      ${tabs.map((tab) => `
+        <button class="tab ${state.activeTab === tab ? "active" : ""}" onclick="setTab('${tab}')">
+          ${capitalize(tab)}
+        </button>
+      `).join("")}
     </div>
 
-    ${locked ? lockedPanel(series) : tabContent(seriesId, state.activeTab)}
+    ${locked ? lockedPanel(series) : tabContent(id, state.activeTab)}
   `);
 }
 
@@ -539,21 +479,12 @@ function lockedPanel(series) {
   return `
     <div class="panel">
       <h3>This premium dashboard is locked</h3>
-
-      <p class="muted">
-        You can preview this series. Unlock to access full materials, practice dashboard, analytics and updates.
-      </p>
+      <p class="muted">Unlock to access paid PDFs, dashboard, updates and tracking.</p>
 
       <div class="payment-box">
-        <strong>Manual UPI Unlock Flow</strong>
-        <p>
-          Pay ₹${series.price}, upload/send screenshot, then admin approves access.
-          In Version 2, this will work with Supabase.
-        </p>
-
-        <button class="btn warning" onclick="paymentPage('${series.id}')">
-          Continue to Payment
-        </button>
+        <strong>Manual UPI Unlock</strong>
+        <p>Pay ₹${series.price}, send screenshot, and admin will approve access.</p>
+        <button class="btn warning" onclick="paymentPage('${series.id}')">Continue to Payment</button>
       </div>
     </div>
   `;
@@ -563,15 +494,15 @@ function tabContent(seriesId, tab) {
   if (tab === "overview") return overviewTab(seriesId);
   if (tab === "materials") return materialsTab(seriesId);
   if (tab === "practice") return practiceTab(seriesId);
-  if (tab === "tests") return testsTab(seriesId);
+  if (tab === "tests") return testsTab();
   if (tab === "mistakes") return mistakesPage(true, seriesId);
   if (tab === "analytics") return analyticsPage(true, seriesId);
   if (tab === "updates") return updatesTab(seriesId);
 }
 
 function overviewTab(seriesId) {
-  const stats = getStats({ seriesId });
-  const materials = MATERIALS.filter((m) => m.seriesId === seriesId);
+  const s = getStats(seriesId);
+  const mats = MATERIALS.filter((m) => m.seriesId === seriesId);
 
   return `
     <div class="grid two-column">
@@ -579,55 +510,28 @@ function overviewTab(seriesId) {
         <h3>Series Overview</h3>
 
         <table class="table">
-          <tr>
-            <th>Metric</th>
-            <th>Value</th>
-          </tr>
-          <tr>
-            <td>Total Problems Solved</td>
-            <td>${stats.solved}</td>
-          </tr>
-          <tr>
-            <td>Total Correct</td>
-            <td>${stats.correct}</td>
-          </tr>
-          <tr>
-            <td>Total Incorrect</td>
-            <td>${stats.incorrect}</td>
-          </tr>
-          <tr>
-            <td>Total Skipped</td>
-            <td>${stats.skipped}</td>
-          </tr>
-          <tr>
-            <td>Accuracy</td>
-            <td>${stats.accuracy}%</td>
-          </tr>
-          <tr>
-            <td>Completion</td>
-            <td>${getCompletion(seriesId)}%</td>
-          </tr>
+          <tr><th>Metric</th><th>Value</th></tr>
+          <tr><td>Total Problems Solved</td><td>${s.solved}</td></tr>
+          <tr><td>Total Correct</td><td>${s.correct}</td></tr>
+          <tr><td>Total Incorrect</td><td>${s.incorrect}</td></tr>
+          <tr><td>Total Skipped</td><td>${s.skipped}</td></tr>
+          <tr><td>Accuracy</td><td>${s.accuracy}%</td></tr>
+          <tr><td>Completion</td><td>${getCompletion(seriesId)}%</td></tr>
         </table>
       </div>
 
       <div class="panel">
-        <h3>Latest Materials</h3>
-
+        <h3>Latest PDF Resources</h3>
         <div class="list">
           ${
-            materials.length
-              ? materials
-                  .slice(0, 4)
-                  .map(
-                    (m) => `
-                      <div class="item">
-                        <h4>${m.title}</h4>
-                        <div class="muted">${m.type} • ${m.chapter} • ${m.update}</div>
-                      </div>
-                    `
-                  )
-                  .join("")
-              : `<p class="muted">Materials coming soon.</p>`
+            mats.length
+              ? mats.slice(0, 4).map((m) => `
+                <div class="item">
+                  <h4>${m.title}</h4>
+                  <div class="muted">${m.type} • ${m.chapter} • ${m.update}</div>
+                </div>
+              `).join("")
+              : `<p class="muted">Resources coming soon.</p>`
           }
         </div>
       </div>
@@ -636,11 +540,11 @@ function overviewTab(seriesId) {
 }
 
 function materialsTab(seriesId) {
-  const materials = MATERIALS.filter((m) => m.seriesId === seriesId);
+  const mats = MATERIALS.filter((m) => m.seriesId === seriesId);
 
   return `
     <div class="panel">
-      <h3>Materials Library</h3>
+      <h3>PDF Materials Library</h3>
 
       <table class="table">
         <tr>
@@ -649,26 +553,22 @@ function materialsTab(seriesId) {
           <th>Subject</th>
           <th>Chapter</th>
           <th>Update</th>
-          <th>Action</th>
+          <th>Open</th>
         </tr>
 
         ${
-          materials.length
-            ? materials
-                .map(
-                  (m) => `
-                    <tr>
-                      <td>${m.title}</td>
-                      <td>${m.type}</td>
-                      <td>${m.subject}</td>
-                      <td>${m.chapter}</td>
-                      <td>${m.update}</td>
-                      <td><button class="btn secondary">Open</button></td>
-                    </tr>
-                  `
-                )
-                .join("")
-            : `<tr><td colspan="6">No materials added yet.</td></tr>`
+          mats.length
+            ? mats.map((m) => `
+              <tr>
+                <td>${m.title}</td>
+                <td>${m.type}</td>
+                <td>${m.subject}</td>
+                <td>${m.chapter}</td>
+                <td>${m.update}</td>
+                <td><button class="btn secondary" onclick="openMaterial(${m.id})">Open</button></td>
+              </tr>
+            `).join("")
+            : `<tr><td colspan="6">No PDF resources added yet.</td></tr>`
         }
       </table>
     </div>
@@ -682,9 +582,7 @@ function practiceTab(seriesId = "free") {
     questions = QUESTIONS.filter((q) => q.seriesId === "free");
   }
 
-  const current =
-    questions.find((q) => !state.attempts[q.id]) || questions[0];
-
+  const current = questions.find((q) => !state.attempts[q.id]) || questions[0];
   const attempted = state.attempts[current.id];
 
   return `
@@ -696,27 +594,22 @@ function practiceTab(seriesId = "free") {
 
         <h3 class="question">${current.question}</h3>
 
-        ${current.options
-          .map((option, index) => {
-            let optionClass = "";
+        ${current.options.map((option, index) => {
+          let cls = "";
 
-            if (attempted) {
-              if (index === current.correct) optionClass = "correct";
-              else if (attempted.selected === index) optionClass = "wrong";
-            }
+          if (attempted) {
+            if (index === current.correct) cls = "correct";
+            else if (attempted.selected === index) cls = "wrong";
+          }
 
-            return `
-              <button 
-                class="option ${optionClass}" 
-                onclick="answerQuestion('${current.id}', ${index})"
-              >
-                ${String.fromCharCode(65 + index)}. ${option}
-              </button>
-            `;
-          })
-          .join("")}
+          return `
+            <button class="option ${cls}" onclick="answerQuestion('${current.id}', ${index})">
+              ${String.fromCharCode(65 + index)}. ${option}
+            </button>
+          `;
+        }).join("")}
 
-        <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;">
+        <div style="display:flex; gap:8px; flex-wrap:wrap; margin-top:12px;">
           <button class="btn secondary" onclick="skipQuestion('${current.id}')">Skip</button>
           <button class="btn secondary" onclick="bookmarkQuestion('${current.id}')">Bookmark</button>
           <button class="btn" onclick="render()">Next / Refresh</button>
@@ -732,28 +625,27 @@ function practiceTab(seriesId = "free") {
       <div class="panel">
         <h3>Practice Stats</h3>
         ${practiceStats(seriesId)}
-        <p class="muted">Attempt questions to update your dashboard instantly.</p>
       </div>
     </div>
   `;
 }
 
 function practiceStats(seriesId) {
-  const stats = getStats({ seriesId });
+  const s = getStats(seriesId);
 
   return `
     <div class="grid stats" style="grid-template-columns: repeat(2, 1fr);">
-      ${statCard("Solved", stats.solved)}
-      ${statCard("Correct", stats.correct)}
-      ${statCard("Incorrect", stats.incorrect)}
-      ${statCard("Skipped", stats.skipped)}
-      ${statCard("Accuracy", stats.accuracy + "%")}
-      ${statCard("Completion", getCompletion(seriesId) + "%")}
+      ${stat("Solved", s.solved)}
+      ${stat("Correct", s.correct)}
+      ${stat("Incorrect", s.incorrect)}
+      ${stat("Skipped", s.skipped)}
+      ${stat("Accuracy", s.accuracy + "%")}
+      ${stat("Completion", getCompletion(seriesId) + "%")}
     </div>
   `;
 }
 
-function testsTab(seriesId) {
+function testsTab() {
   return `
     <div class="panel">
       <h3>Tests</h3>
@@ -761,17 +653,13 @@ function testsTab(seriesId) {
       <div class="list">
         <div class="item">
           <h4>Weekly Mini Test 01</h4>
-          <div class="muted">15 questions • Mixed chapters • 45 minutes</div>
-          <button class="btn" style="margin-top: 10px;" onclick="setTab('practice')">
-            Start Practice
-          </button>
+          <div class="muted">PDF test • 15 questions • Mixed chapters</div>
+          <button class="btn" style="margin-top:10px;" onclick="setTab('practice')">Start Practice</button>
         </div>
 
         <div class="item">
-          <h4>Chapter Test System</h4>
-          <div class="muted">
-            Version 2 will add timer, marks, rank-style analysis and test history.
-          </div>
+          <h4>More PDF tests coming soon</h4>
+          <div class="muted">You can upload chapter-wise and subject-wise test PDFs here.</div>
         </div>
       </div>
     </div>
@@ -779,10 +667,10 @@ function testsTab(seriesId) {
 }
 
 function mistakesPage(embedded = false, seriesId = null) {
-  let attempts = getAttemptsArray().filter((a) => a.status === "incorrect");
+  let wrong = Object.values(state.attempts).filter((a) => a.status === "incorrect");
 
   if (seriesId) {
-    attempts = attempts.filter((a) => a.seriesId === seriesId);
+    wrong = wrong.filter((a) => a.seriesId === seriesId);
   }
 
   const content = `
@@ -791,22 +679,18 @@ function mistakesPage(embedded = false, seriesId = null) {
 
       <div class="list">
         ${
-          attempts.length
-            ? attempts
-                .map((attempt) => {
-                  const question = QUESTIONS.find((q) => q.id === attempt.questionId);
+          wrong.length
+            ? wrong.map((a) => {
+              const q = QUESTIONS.find((x) => x.id === a.questionId);
 
-                  return `
-                    <div class="item">
-                      <h4>${question ? question.question : "Question"}</h4>
-                      <div class="muted">${attempt.subject} • ${attempt.chapter}</div>
-                      <p><strong>Correct concept:</strong> ${
-                        question ? question.solution : ""
-                      }</p>
-                    </div>
-                  `;
-                })
-                .join("")
+              return `
+                <div class="item">
+                  <h4>${q ? q.question : "Question"}</h4>
+                  <div class="muted">${a.subject} • ${a.chapter}</div>
+                  <p><strong>Correct concept:</strong> ${q ? q.solution : ""}</p>
+                </div>
+              `;
+            }).join("")
             : `<p class="muted">No mistakes yet. Attempt practice questions first.</p>`
         }
       </div>
@@ -816,7 +700,7 @@ function mistakesPage(embedded = false, seriesId = null) {
   return embedded ? content : layout(content);
 }
 
-function analyticsPage(embedded = false, seriesId = null) {
+function analyticsPage(embedded = false) {
   const subjects = ["Physics", "Chemistry", "Maths"];
 
   const content = `
@@ -833,21 +717,23 @@ function analyticsPage(embedded = false, seriesId = null) {
             <th>Accuracy</th>
           </tr>
 
-          ${subjects
-            .map((subject) => {
-              const stats = getStats({ subject });
+          ${subjects.map((subject) => {
+            const arr = Object.values(state.attempts).filter((a) => a.subject === subject);
+            const solved = arr.filter((a) => a.status !== "skipped").length;
+            const correct = arr.filter((a) => a.status === "correct").length;
+            const incorrect = arr.filter((a) => a.status === "incorrect").length;
+            const accuracy = solved ? Math.round((correct / solved) * 1000) / 10 : 0;
 
-              return `
-                <tr>
-                  <td>${subject}</td>
-                  <td>${stats.solved}</td>
-                  <td>${stats.correct}</td>
-                  <td>${stats.incorrect}</td>
-                  <td>${stats.accuracy}%</td>
-                </tr>
-              `;
-            })
-            .join("")}
+            return `
+              <tr>
+                <td>${subject}</td>
+                <td>${solved}</td>
+                <td>${correct}</td>
+                <td>${incorrect}</td>
+                <td>${accuracy}%</td>
+              </tr>
+            `;
+          }).join("")}
         </table>
       </div>
 
@@ -862,40 +748,33 @@ function analyticsPage(embedded = false, seriesId = null) {
 }
 
 function weakAreaDetector() {
-  const wrongAttempts = getAttemptsArray().filter(
-    (a) => a.status === "incorrect"
-  );
+  const wrong = Object.values(state.attempts).filter((a) => a.status === "incorrect");
+  const map = {};
 
-  const chapterMap = {};
-
-  wrongAttempts.forEach((attempt) => {
-    chapterMap[attempt.chapter] = (chapterMap[attempt.chapter] || 0) + 1;
+  wrong.forEach((a) => {
+    map[a.chapter] = (map[a.chapter] || 0) + 1;
   });
 
-  const weakChapters = Object.entries(chapterMap).sort((a, b) => b[1] - a[1]);
+  const weak = Object.entries(map).sort((a, b) => b[1] - a[1]);
 
-  if (weakChapters.length === 0) {
+  if (!weak.length) {
     return `<p class="muted">No weak areas detected yet.</p>`;
   }
 
   return `
     <div class="list">
-      ${weakChapters
-        .map(
-          ([chapter, count]) => `
-            <div class="item">
-              <strong>${chapter}</strong>
-              <div class="muted">${count} repeated mistake(s)</div>
-            </div>
-          `
-        )
-        .join("")}
+      ${weak.map(([chapter, count]) => `
+        <div class="item">
+          <strong>${chapter}</strong>
+          <div class="muted">${count} repeated mistake(s)</div>
+        </div>
+      `).join("")}
     </div>
   `;
 }
 
 function updatesTab(seriesId) {
-  const materials = MATERIALS.filter((m) => m.seriesId === seriesId);
+  const mats = MATERIALS.filter((m) => m.seriesId === seriesId);
 
   return `
     <div class="panel">
@@ -903,17 +782,13 @@ function updatesTab(seriesId) {
 
       <div class="list">
         ${
-          materials.length
-            ? materials
-                .map(
-                  (m) => `
-                    <div class="item">
-                      <h4>${m.update}: ${m.title}</h4>
-                      <div class="muted">${m.type} • ${m.subject} • ${m.chapter}</div>
-                    </div>
-                  `
-                )
-                .join("")
+          mats.length
+            ? mats.map((m) => `
+              <div class="item">
+                <h4>${m.update}: ${m.title}</h4>
+                <div class="muted">${m.type} • ${m.subject} • ${m.chapter}</div>
+              </div>
+            `).join("")
             : `<p class="muted">Weekly updates will appear here.</p>`
         }
       </div>
@@ -925,10 +800,8 @@ function premiumPage() {
   return layout(`
     <div class="section-title">
       <div>
-        <h2>Premium Unlock System</h2>
-        <p class="muted">
-          Version 1 uses manual UPI demo. Version 2 will add screenshot upload and admin approval.
-        </p>
+        <h2>Premium PDF Series</h2>
+        <p class="muted">Manual UPI unlock system for paid PDF resources.</p>
       </div>
     </div>
 
@@ -941,9 +814,8 @@ function premiumPage() {
 function paymentPage(seriesId) {
   const series = SERIES.find((s) => s.id === seriesId);
 
-  state.paymentSeries = seriesId;
   state.view = "payment";
-  saveState();
+  save();
 
   document.getElementById("app").innerHTML = layout(`
     <div class="panel">
@@ -956,19 +828,12 @@ function paymentPage(seriesId) {
 
         <p><strong>UPI ID:</strong> yourupi@bank</p>
 
-        <p>
-          After payment, user sends screenshot on Telegram.
-          In Version 2, user will upload screenshot directly inside the app.
-        </p>
+        <p>After payment, user sends screenshot on Telegram. You approve access manually.</p>
 
         <button class="btn success" onclick="demoUnlock('${series.id}')">
           Demo: Approve & Unlock
         </button>
       </div>
-
-      <p class="footer-note">
-        Replace UPI ID before real launch. If you are under 18, take parent/guardian help for payments.
-      </p>
     </div>
   `);
 }
@@ -978,39 +843,37 @@ function adminPage() {
     <div class="section-title">
       <div>
         <h2>Admin Panel V1</h2>
-        <p class="muted">
-          Static demo admin. Version 2 will connect Supabase for real content upload and payment approval.
-        </p>
+        <p class="muted">Demo admin area. Real upload and approval will come later with Supabase.</p>
       </div>
     </div>
 
     <div class="grid two-column">
       <div class="panel">
-        <h3>Content Manager Demo</h3>
+        <h3>PDF Resource Manager Demo</h3>
 
-        <input class="field" placeholder="Material title" />
-
+        <input class="field" placeholder="PDF title">
         <select class="field">
-          <option>PDF</option>
-          <option>Practice</option>
-          <option>Test</option>
-          <option>Mind Map</option>
+          <option>Concise Notes PDF</option>
+          <option>DPP PDF</option>
+          <option>PYQ PDF</option>
+          <option>Test PDF</option>
+          <option>Mind Map PDF</option>
         </select>
+        <input class="field" placeholder="Subject">
+        <input class="field" placeholder="Chapter">
+        <input class="field" placeholder="PDF link">
 
-        <input class="field" placeholder="Subject" />
-        <input class="field" placeholder="Chapter" />
-
-        <button class="btn">Add Material Demo</button>
+        <button class="btn">Add PDF Demo</button>
       </div>
 
       <div class="panel">
-        <h3>Version 2 Admin Powers</h3>
+        <h3>Upcoming Admin Powers</h3>
 
         <div class="list">
-          <div class="item">Add/edit series</div>
-          <div class="item">Upload PDFs to Supabase Storage</div>
-          <div class="item">Add questions and solutions</div>
+          <div class="item">Add new PDF resources</div>
           <div class="item">Approve UPI screenshots</div>
+          <div class="item">Unlock paid series</div>
+          <div class="item">Add questions and solutions</div>
           <div class="item">Send announcements</div>
         </div>
       </div>
@@ -1019,43 +882,43 @@ function adminPage() {
 }
 
 function answerQuestion(questionId, selectedIndex) {
-  const question = QUESTIONS.find((q) => q.id === questionId);
+  const q = QUESTIONS.find((x) => x.id === questionId);
 
   state.attempts[questionId] = {
     questionId,
     selected: selectedIndex,
-    status: selectedIndex === question.correct ? "correct" : "incorrect",
-    seriesId: question.seriesId,
-    subject: question.subject,
-    chapter: question.chapter,
+    status: selectedIndex === q.correct ? "correct" : "incorrect",
+    seriesId: q.seriesId,
+    subject: q.subject,
+    chapter: q.chapter,
     time: Date.now()
   };
 
-  saveState();
+  save();
   render();
 }
 
 function skipQuestion(questionId) {
-  const question = QUESTIONS.find((q) => q.id === questionId);
+  const q = QUESTIONS.find((x) => x.id === questionId);
 
   state.attempts[questionId] = {
     questionId,
     selected: null,
     status: "skipped",
-    seriesId: question.seriesId,
-    subject: question.subject,
-    chapter: question.chapter,
+    seriesId: q.seriesId,
+    subject: q.subject,
+    chapter: q.chapter,
     time: Date.now()
   };
 
-  saveState();
+  save();
   render();
 }
 
 function bookmarkQuestion(questionId) {
   if (!state.bookmarks.includes(questionId)) {
     state.bookmarks.push(questionId);
-    saveState();
+    save();
     alert("Question bookmarked");
   } else {
     alert("Already bookmarked");
@@ -1071,8 +934,19 @@ function demoUnlock(seriesId) {
   state.activeTab = "overview";
   state.view = "series-detail";
 
-  saveState();
+  save();
   render();
+}
+
+function openMaterial(materialId) {
+  const material = MATERIALS.find((m) => m.id === materialId);
+
+  if (!material.fileUrl) {
+    alert("PDF link not added yet. Later you will paste your Google Drive or Supabase PDF link here.");
+    return;
+  }
+
+  window.open(material.fileUrl, "_blank");
 }
 
 function toggleMenu() {
@@ -1089,7 +963,6 @@ function searchCards(value) {
 
   cards.forEach((card) => {
     const text = card.getAttribute("data-search") || "";
-
     card.style.display = text.includes(searchValue) ? "block" : "none";
   });
 }
@@ -1107,7 +980,7 @@ function render() {
   }
 
   if (state.view === "free") {
-    app.innerHTML = freeDashboard();
+    app.innerHTML = freePage();
     return;
   }
 
@@ -1126,7 +999,6 @@ function render() {
       <div class="section-title">
         <h2>Practice Zone</h2>
       </div>
-
       ${practiceTab("free")}
     `);
     return;
