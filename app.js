@@ -166,8 +166,7 @@ function layout(content) {
         ${navButton("updates", "Updates")}
 
         <div class="nav-title">Business</div>
-        ${navButton("premium", "Premium & UPI")}
-        ${navButton("admin", "Admin Panel")}
+${navButton("premium", "Premium & UPI")}
 
         <div class="footer-note">
           V1 works without backend. Progress is saved in this browser.
@@ -969,11 +968,15 @@ function paymentPage(seriesId) {
   state.view = "payment";
   save();
 
+  const telegramLink = "https://t.me/" + APP_CONFIG.telegramUsername.replace("@", "");
+
   document.getElementById("app").innerHTML = layout(`
     <div class="panel">
       <h2>Unlock ${series.title}</h2>
 
-      <p class="muted">Manual payment flow for V1.</p>
+      <p class="muted">
+        Complete the payment and send screenshot on Telegram. Access will be given manually.
+      </p>
 
       <div class="payment-box">
         <h3>Pay ₹${series.price} via UPI</h3>
@@ -981,22 +984,23 @@ function paymentPage(seriesId) {
         <p><strong>UPI ID:</strong> ${APP_CONFIG.upiId}</p>
 
         <p>
-          After payment, send screenshot to ${APP_CONFIG.telegramUsername}.
-          Admin will approve manually. In this V1 demo, use the button below to simulate approval.
+          After payment, send your screenshot and series name to:
+          <strong>${APP_CONFIG.telegramUsername}</strong>
         </p>
 
-        <button class="btn success" onclick="demoUnlock('${series.id}')">
-          Demo: Approve & Unlock
-        </button>
+        <a href="${telegramLink}" target="_blank">
+          <button class="btn success">
+            Send Screenshot on Telegram
+          </button>
+        </a>
       </div>
 
       <p class="footer-note">
-        Replace UPI ID and Telegram username inside data.js before real launch.
+        Your access/resources will be sent manually after verification.
       </p>
     </div>
   `);
 }
-
 function adminPage() {
   return layout(`
     <div class="section-title">
